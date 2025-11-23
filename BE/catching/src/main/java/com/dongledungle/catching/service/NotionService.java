@@ -38,7 +38,19 @@ public class NotionService {
     }
 
     public String createPageFromAnalysis(String jsonAnalysis) {
-        JsonObject analysis = gson.fromJson(jsonAnalysis, JsonObject.class);
+        
+        JsonObject analysis;
+        try {
+            analysis = gson.fromJson(jsonAnalysis, JsonObject.class);
+        } catch (com.google.gson.JsonSyntaxException e) {
+            String cleanedJson = cleanJson(jsonAnalysis);
+            if (cleanedJson.isEmpty()) {
+                throw new RuntimeException("Final stream output is not a valid JSON object.", e);
+            }
+            analysis = gson.fromJson(cleanedJson, JsonObject.class);
+        }
+
+
         JsonObject notionData = analysis.getAsJsonObject("transform").getAsJsonObject("notion");
         String title = notionData.get("title").getAsString();
         JsonArray sections = notionData.getAsJsonArray("sections");
@@ -84,6 +96,17 @@ public class NotionService {
         return pageId;
     }
 
+    private String cleanJson(String rawJson) {
+        int startIndex = rawJson.indexOf('{');
+        int endIndex = rawJson.lastIndexOf('}');
+        
+        if (startIndex != -1 && endIndex != -1 && endIndex > startIndex) {
+            return rawJson.substring(startIndex, endIndex + 1); 
+        }
+        return "";
+    }
+
+
     private String createPage(String title) {
         Map<String, Object> body = new HashMap<>();
         Map<String, Object> parent = new HashMap<>();
@@ -92,7 +115,7 @@ public class NotionService {
 
         Map<String, Object> properties = new HashMap<>();
         Map<String, Object> titleProp = new HashMap<>();
-        titleProp.put("title", List.of(Map.of("text", Map.of("content", title))));
+        titleProp.put("title", List.of(Map.of("text", Map.of("content", title)))); 
         properties.put("title", titleProp);
         body.put("properties", properties);
 
@@ -128,6 +151,7 @@ public class NotionService {
         block.put("object", "block");
         String type = "heading_" + level;
         block.put("type", type);
+        
         block.put(type, Map.of("rich_text", richtextLinkParser(content)));
         return block;
     }
@@ -205,61 +229,29 @@ public class NotionService {
         return blocks;
     }
 
+    @SuppressWarnings("unchecked")
     private List<Map<String, Object>> richtextParser(String text) {
         List<Map<String, Object>> chunks = new ArrayList<>();
-        Pattern pattern = Pattern.compile("\\*\\*([^\\*]+)\\*\\*");
-        Matcher matcher = pattern.matcher(text);
-        int lastIdx = 0;
-        
-        while (matcher.find()) {
-            if (matcher.start() > lastIdx) {
-                chunks.add(createText(text.substring(lastIdx, matcher.start()), false, null));
-            }
-            chunks.add(createText(matcher.group(1), true, null));
-            lastIdx = matcher.end();
-        }
-        
-        if (lastIdx < text.length()) {
-            chunks.add(createText(text.substring(lastIdx), false, null));
-        }
-        
-        if (chunks.isEmpty()) {
-            chunks.add(createText(text, false, null));
-        }
-        return chunks;
-    }
-
-    @SuppressWarnings("unchecked")
-    private List<Map<String, Object>> richtextLinkParser(String text) {
-        List<Map<String, Object>> chunks = new ArrayList<>();
         Matcher linkMatcher = LINK_PATTERN.matcher(text);
-        
-        int lastIdx = 0;
+        int lastLinkIdx = 0;
         
         while (linkMatcher.find()) {
-            if (linkMatcher.start() > lastIdx) {
-                chunks.addAll(richtextParser(text.substring(lastIdx, linkMatcher.start())));
+            if (linkMatcher.start() > lastLinkIdx) {
+                processTextAndBold(chunks, text.substring(lastLinkIdx, linkMatcher.start()), null);
             }
             
             String linkText = linkMatcher.group(1);
             String url = linkMatcher.group(2);
-            List<Map<String, Object>> linkChunks = richtextParser(linkText);
             
-            for (Map<String, Object> chunk : linkChunks) {
-                Map<String, Object> textMap = (Map<String, Object>) chunk.get("text");
-                Map<String, Object> annotations = (Map<String, Object>) chunk.get("annotations");
-                
-                String content = (String) textMap.get("content");
-                Boolean isBold = (Boolean) annotations.get("bold");
-                
-                chunks.add(createText(content, isBold, url));
-            }
+            List<Map<String, Object>> innerChunks = new ArrayList<>();
+            processTextAndBold(innerChunks, linkText, url);
             
-            lastIdx = linkMatcher.end();
+            chunks.addAll(innerChunks);
+            lastLinkIdx = linkMatcher.end();
         }
         
-        if (lastIdx < text.length()) {
-            chunks.addAll(richtextParser(text.substring(lastIdx)));
+        if (lastLinkIdx < text.length()) {
+            processTextAndBold(chunks, text.substring(lastLinkIdx), null);
         }
         
         if (chunks.isEmpty() && text.trim().length() > 0) {
@@ -267,6 +259,31 @@ public class NotionService {
         }
         return chunks;
     }
+    
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> richtextLinkParser(String text) {
+        return richtextParser(text);
+    }
+    
+    @SuppressWarnings("unchecked")
+    private void processTextAndBold(List<Map<String, Object>> chunks, String text, String url) {
+        Pattern boldPattern = Pattern.compile("\\*\\*([^\\*]+)\\*\\*");
+        Matcher boldMatcher = boldPattern.matcher(text);
+        int lastIdx = 0;
+        
+        while (boldMatcher.find()) {
+            if (boldMatcher.start() > lastIdx) {
+                chunks.add(createText(text.substring(lastIdx, boldMatcher.start()), false, url));
+            }
+            chunks.add(createText(boldMatcher.group(1), true, url));
+            lastIdx = boldMatcher.end();
+        }
+        
+        if (lastIdx < text.length()) {
+            chunks.add(createText(text.substring(lastIdx), false, url));
+        }
+    }
+
 
     private Map<String, Object> createText(String content, boolean bold, String url) {
         Map<String, Object> textMap = new HashMap<>();
@@ -280,6 +297,7 @@ public class NotionService {
         }
         
         textMap.put("text", textContent);
+        
         textMap.put("annotations", Map.of("bold", bold));
 
         return textMap;

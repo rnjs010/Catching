@@ -53,20 +53,20 @@ public class AnalysisController {
                 }
             }
 
-            // String rawJson = finalJsonResponse.toString();
-            String finalJson = finalJsonResponse.toString();
-            // int startIndex = rawJson.indexOf('{');
-            // int endIndex = rawJson.lastIndexOf('}');
+            String rawJson = finalJsonResponse.toString();
+            // String finalJson = finalJsonResponse.toString();
+            int startIndex = rawJson.indexOf('{');
+            int endIndex = rawJson.lastIndexOf('}');
 
-            // String finalJson = "";
+            String finalJson = "";
 
-            // if (startIndex != -1 && endIndex != -1 && endIndex > startIndex) {
-            //     finalJson = rawJson.substring(startIndex, endIndex + 1); 
-            // } else {
-            //     System.err.println("JSON Parsing Error: Cannot find valid JSON object boundary in stream output.");
-            //     emitter.completeWithError(new RuntimeException("AI analysis failed to return valid JSON object."));
-            //     return emitter;
-            // }
+            if (startIndex != -1 && endIndex != -1 && endIndex > startIndex) {
+                finalJson = rawJson.substring(startIndex, endIndex + 1); 
+            } else {
+                System.err.println("JSON Parsing Error: Cannot find valid JSON object boundary in stream output.");
+                emitter.completeWithError(new RuntimeException("AI analysis failed to return valid JSON object."));
+                return emitter;
+            }
 
             String pageId = notionService.createPageFromAnalysis(finalJson);
 
