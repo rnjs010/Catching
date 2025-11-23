@@ -1,6 +1,6 @@
 package com.dongledungle.catching.service;
 
-import com.dongledungle.catching.common.config.AnalysisSchema;
+// import com.dongledungle.catching.common.config.AnalysisSchema;
 import com.google.common.collect.ImmutableList;
 import com.google.genai.Client;
 import com.google.genai.ResponseStream;
@@ -58,7 +58,7 @@ public class GeminiService {
             .build()
         );
 
-        Schema analysisSchema = AnalysisSchema.getSchema(); 
+        // Schema analysisSchema = AnalysisSchema.getSchema(); 
 
         GenerateContentConfig config =
             GenerateContentConfig
@@ -70,8 +70,8 @@ public class GeminiService {
                     .build()
             )
             .tools(tools)
-            .responseMimeType("application/json")
-            .responseSchema(analysisSchema)
+            // .responseMimeType("application/json")  // 구글 서치 툴과 응답형식 강제 동시 사용 불가
+            // .responseSchema(analysisSchema)
             .systemInstruction(
                 Content
                     .fromParts(
@@ -116,7 +116,9 @@ analysisDepth는 detailed, standard, brief 3개 문자열 중 한 개로 입력�
 - 인재상의 경우 {company} 인재상으로 검색 후, 존재하지 않는다면 빈 배열. 채용관련 사이트에서 획득 가능
 
 응답 형식:
-아래 JSON 구조로만 정확히 따라서 application/json으로 반환하세요.
+아래 JSON 구조로만 정확히 따라서 application/json 형식으로 반환하세요.
+json구조가 정확하지 않으면 해당 응답은 무시됩니다. 괄호열고 닫기와 쉼표는 정확해야 합니다.
+예시와 동일한 위치에 괄호가 열리고 닫혀야 합니다.
 
 {
   "company": {
@@ -229,7 +231,7 @@ analysisDepth는 detailed, standard, brief 3개 문자열 중 한 개로 입력�
             },
             {
               "h3": "최근 이슈",
-              "content": " 긍정적 이슈1(날짜)\n 긍정적 이슈2(날짜)\n...\n\n 부정적 이슈1(날짜)\n 부정적 이슈2(날짜)\n..." 
+              "content": "- [긍정적 이슈1 제목(날짜)](출처 URL): 내용\n- [긍정적 이슈2 제목(날짜)](출처 URL): 내용\n...\n\n- [부정적 이슈1 제목(날짜)](출처 URL): 내용\n- [부정적 이슈2 제목(날짜)](출처 URL): 내용\n..." 
             },
             {
               "h3": "미래 전망",
@@ -264,14 +266,13 @@ analysisDepth는 detailed, standard, brief 3개 문자열 중 한 개로 입력�
           ]
         }
       ]
-    },
+    }
   },
   "metadata": {
     "generated_at": "ISO 8601",
     "analysis_depth": "detailed|standard|brief", 
     "total_sources": 검색한 소스 갯수
   }
- 
 }
 
 
@@ -286,5 +287,7 @@ CRITICAL:
 - 소스 url도 임의로 생성하지 않습니다. 없다면 비워둡니다.
 - 한번에 모든 것을 검색하지 않고, 세부정보 하나하나 순차적으로 검색하며, 추가적으로 연관정보 검색으로 정보 획득합니다.
 - 정보 부족으로 추가 검색이 필요한 경우 반드시 추가질문 없이 추가 검색하여 정보를 획득합니다.
-- source의 경우는 url칸에 입력하고, 본문 뒤에는 []로 링크 넣지 않습니다.""";
+- source의 경우는 url칸에 입력하고, 본문 뒤에는 []로 링크 넣지 않습니다.
+- JSON 구조를 반드시 확인하고, 괄호와 쉼표의 위치와 갯수가 정확해야 합니다.
+- 괄호가 열렸다면, 반드시 올바르게 닫혀야 합니다.""";
 }
