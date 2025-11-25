@@ -175,7 +175,7 @@ AI 기반으로 빠르게 회사 관련 정보를 받고 싶은 분
 
 ### Backend
 
-- Spring Boot 3.5.7
+- Spring Boot 3.5.8
 - Java
 - MySQL
 - Gradle
