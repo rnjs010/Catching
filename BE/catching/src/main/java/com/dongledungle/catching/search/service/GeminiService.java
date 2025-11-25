@@ -1,4 +1,4 @@
-package com.dongledungle.catching.service;
+package com.dongledungle.catching.search.service;
 
 // import com.dongledungle.catching.common.config.AnalysisSchema;
 import com.google.common.collect.ImmutableList;

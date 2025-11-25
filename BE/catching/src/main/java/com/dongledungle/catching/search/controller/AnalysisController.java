@@ -1,8 +1,8 @@
-package com.dongledungle.catching.controller;
+package com.dongledungle.catching.search.controller;
 
-import com.dongledungle.catching.dto.AnalysisRequestDto;
-import com.dongledungle.catching.service.GeminiService;
-import com.dongledungle.catching.service.NotionService;
+import com.dongledungle.catching.search.dto.AnalysisRequestDto;
+import com.dongledungle.catching.search.service.GeminiService;
+import com.dongledungle.catching.search.service.NotionService;
 import com.google.genai.ResponseStream;
 import com.google.genai.types.GenerateContentResponse;
 import lombok.RequiredArgsConstructor;
@@ -68,15 +68,15 @@ public class AnalysisController {
                 return emitter;
             }
 
-            String pageId = notionService.createPageFromAnalysis(finalJson);
-
-            emitter.send(SseEmitter.event()
-                    .name("notionComplete")
-                    .data(pageId)
-                    .reconnectTime(1000L) 
-            );
-            
-            emitter.complete();
+//            String pageId = notionService.createPageFromAnalysis(finalJson);
+//
+//            emitter.send(SseEmitter.event()
+//                    .name("notionComplete")
+//                    .data(pageId)
+//                    .reconnectTime(1000L)
+//            );
+//
+//            emitter.complete();
 
         } catch (Exception e) {
             System.err.println("Analysis/Notion Streaming Error: " + e.getMessage());
