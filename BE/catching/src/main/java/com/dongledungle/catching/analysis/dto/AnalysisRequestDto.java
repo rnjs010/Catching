@@ -1,4 +1,4 @@
-package com.dongledungle.catching.search.dto;
+package com.dongledungle.catching.analysis.dto;
 
 import lombok.Data;
 

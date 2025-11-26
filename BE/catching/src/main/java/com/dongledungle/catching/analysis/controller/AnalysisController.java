@@ -1,12 +1,15 @@
-package com.dongledungle.catching.search.controller;
+package com.dongledungle.catching.analysis.controller;
 
-import com.dongledungle.catching.search.dto.AnalysisRequestDto;
-import com.dongledungle.catching.search.service.GeminiService;
-import com.dongledungle.catching.search.service.NotionService;
+import com.dongledungle.catching.analysis.dto.AnalysisRequestDto;
+import com.dongledungle.catching.analysis.service.GeminiService;
+import com.dongledungle.catching.analysis.service.NotionService;
 import com.google.genai.ResponseStream;
 import com.google.genai.types.GenerateContentResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -15,6 +18,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
 
+@Slf4j
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
@@ -84,5 +88,35 @@ public class AnalysisController {
         }
 
         return emitter;
+    }
+
+    @PostMapping("/analysis/raw")
+    public ResponseEntity<String> analyzeRaw(@RequestBody AnalysisRequestDto request){
+        try{
+            ResponseStream<GenerateContentResponse> responseStream =
+                    geminiService.analyzeCompany(
+                            request.getToday(),
+                            request.getCompany(),
+                            request.getPosition(),
+                            request.getAnalysisDepth()
+                    );
+
+            StringBuilder rawResponse = new StringBuilder();
+
+            for(GenerateContentResponse response : responseStream){
+                String textChunk = response.candidates().get().get(0)
+                        .content().get().parts().get().get(0).text().get();
+                rawResponse.append(textChunk);
+            }
+
+            // 파싱 없이 그대로 반환
+            return ResponseEntity.ok()
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body(rawResponse.toString());
+        }catch (Exception e) {
+            log.error("Raw Analysis Error: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error: " + e.getMessage());
+        }
     }
 }

@@ -1,4 +1,4 @@
-package com.dongledungle.catching.search.service;
+package com.dongledungle.catching.analysis.service;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
