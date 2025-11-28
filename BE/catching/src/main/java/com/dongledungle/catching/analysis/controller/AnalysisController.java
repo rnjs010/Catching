@@ -1,6 +1,7 @@
 package com.dongledungle.catching.analysis.controller;
 
 import com.dongledungle.catching.analysis.dto.AnalysisRequestDto;
+import com.dongledungle.catching.analysis.service.AnalysisService;
 import com.dongledungle.catching.analysis.service.GeminiService;
 import com.dongledungle.catching.analysis.service.NotionService;
 import com.google.genai.ResponseStream;
@@ -26,6 +27,7 @@ public class AnalysisController {
 
     private final GeminiService geminiService;
     private final NotionService notionService;
+    private final AnalysisService analysisService;
 
     @PostMapping(value = "/analysis", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter analyze(@RequestBody AnalysisRequestDto request) {
@@ -108,6 +110,12 @@ public class AnalysisController {
                         .content().get().parts().get().get(0).text().get();
                 rawResponse.append(textChunk);
             }
+
+            Long id = analysisService.saveAnalysisToDatabase(
+                    request.getCompany(),
+                    request.getPosition(),
+                    rawResponse.toString()
+            );
 
             // 파싱 없이 그대로 반환
             return ResponseEntity.ok()
