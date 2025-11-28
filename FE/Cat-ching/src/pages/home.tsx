@@ -15,7 +15,7 @@ import blueCat from "@/assets/blueCat.png";
 // `;
 
 export const Container = styled.div`
-  ${tw`w-full min-h-screen bg-white flex flex-col justify-between items-center font-sans`}
+  ${tw`w-full min-h-screen bg-white flex flex-col justify-between items-center`}
 `;
 
 export const Header = styled.div`
@@ -23,7 +23,7 @@ export const Header = styled.div`
 `;
 
 export const Title = styled.h1`
-  ${tw`text-lg font-semibold`}
+  ${tw`text-lg font-bold`}
 `;
 
 export const ContentArea = styled.div`
@@ -35,7 +35,7 @@ export const SubText = styled.div`
 `;
 
 export const MainTitle = styled.h2`
-  ${tw`text-xl font-bold text-center mt-3`}
+  ${tw`text-xl text-center mt-3 font-bold`}
 `;
 
 export const DateRange = styled.div`
