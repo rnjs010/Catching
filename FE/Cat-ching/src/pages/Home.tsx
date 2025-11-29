@@ -7,6 +7,7 @@ import { ResponsivePie } from "@nivo/pie";
 import blueCat from "@/assets/blueCat.png";
 import { useState } from "react";
 import { PieItem } from "@/types/chart.type";
+import BlurText from "@/components/BlurText";
 
 export const ContentArea = styled.div`
   ${tw`flex flex-col items-center justify-center flex-1 w-full`}
@@ -29,6 +30,11 @@ export const LoginButton = styled.button`
   background-color: ${colors.blue10};
 `;
 
+// Text Animation
+const handleAnimationComplete = () => {
+  console.log("Animation completed!");
+};
+
 // 차트 관련
 const DefaultChartText = () => (
   <>
@@ -44,13 +50,20 @@ const DefaultChartText = () => (
 
 const HoverChartText = ({ item }: { item: PieItem }) => (
   <>
-    <Text variant="sm" color="gray60">
+    <Text variant="sm" color="gray60" tw="animate-fade-in-slow">
       {item.value}명 조사
     </Text>
-    <Text variant="xl">{item.label}</Text>
-    <Text variant="2xl" weight="semibold" color="blue80">
-      {item.job}
+    <Text variant="xl" tw="animate-fade-in-slow">
+      {item.label}
     </Text>
+    <BlurText
+      text={item.job}
+      delay={80}
+      animateBy="letters"
+      direction="top"
+      onAnimationComplete={handleAnimationComplete}
+      className="text-2xl font-semibold text-[#0058CC]"
+    />
     <Text variant="sm" weight="normal" color="gray60">
       2025.09.08~2025.09.15
     </Text>
