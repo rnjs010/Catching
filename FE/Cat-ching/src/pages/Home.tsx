@@ -14,7 +14,7 @@ export const ContentArea = styled.div`
 `;
 
 export const ChartText = styled.div`
-  ${tw`h-24 flex flex-col items-center justify-center mt-6`}
+  ${tw`h-24 flex flex-col items-center justify-center`}
 `;
 
 export const ChartWrapper = styled.div`
@@ -26,7 +26,7 @@ export const InnerIcon = styled.div`
 `;
 
 export const LoginButton = styled.button`
-  ${tw`my-8 w-11/12 rounded-xl shadow-lg border flex items-center justify-center gap-2`}
+  ${tw`mb-4 mt-16 w-11/12 rounded-xl shadow-lg border flex items-center justify-center gap-2`}
   background-color: ${colors.blue10};
 `;
 
