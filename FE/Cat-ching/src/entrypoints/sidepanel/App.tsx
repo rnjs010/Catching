@@ -5,6 +5,8 @@ import styled from 'styled-components';
 import tw from 'twin.macro';
 import catQLogo from '@/assets/cat_q.png';
 import catFLogo from '@/assets/cat_f.png';
+import GradientText from '@/components/GradientText';
+import SplitText from '@/components/SplitText';
 
 const queryClient = new QueryClient()
 
@@ -87,8 +89,8 @@ function MainPopup() {
       <ContentArea>
         {currentSite ? (
           <SiteInfo>
-            회사명:
-            <CompanyName>{company || '찾을 수 없음'}</CompanyName>
+            <Header className='text-xl font-extrabold'>어떤 회사를 탐색할까요?</Header>
+            <CompanyName>{company ? <SplitText text={company} delay={180} /> : <GradientText children="채용 공고 분석 중..." />}</CompanyName>
           </SiteInfo>
         ) : (
           <AlertMessage>지원하는 구직사이트에서 사용해주세요</AlertMessage>

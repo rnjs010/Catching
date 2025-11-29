@@ -142,8 +142,10 @@ function extractCompany(site: string, url: string): string | null {
 
   if (site === 'other') {
     const bodyText = document.body.innerText || ''
-    if (bodyText.includes('채용')) {
-      return document.title?.trim() || null
+    if (url.includes('recruit') || url.includes('careers')) {
+      return document.title?.replace("채용", '').replace("정보", '').replace("careers", '').replace("Careers", '').trim() || null
+    } else if ((bodyText.includes('채용') || bodyText.includes('careers') || bodyText.includes('Careers')) && (!url.includes('news') || !url.includes('blog') || !url.includes('cafe') || !url.includes('tistory'))) {
+      return document.title?.replace("채용", '').replace("정보", '').replace("careers", '').replace("Careers", '').trim() || null
     }
   }
   
