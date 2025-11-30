@@ -39,4 +39,6 @@ class AnalysisRepositoryTest {
         assertThat(found.getCompany()).isEqualTo("삼성SDS");
         assertThat(found.getContent()).isEqualTo("{\"test\":\"data\"}");
     }
+
+
 }
