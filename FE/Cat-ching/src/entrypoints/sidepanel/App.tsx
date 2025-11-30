@@ -2,7 +2,8 @@ import "./App.css";
 import styled from "styled-components";
 import tw from "twin.macro";
 import { GlobalFonts } from "@/styles/fonts";
-import Home from "@/pages/Home";
+// import Home from "@/pages/Home";
+import Search from "@/pages/Search";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
@@ -21,7 +22,7 @@ function App() {
 
       <ContentWrapper>
         <Header />
-        <Home />
+        <Search />
         <Footer />
       </ContentWrapper>
     </Container>

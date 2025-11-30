@@ -10,22 +10,9 @@ import SplitText from '@/components/SplitText';
 
 const queryClient = new QueryClient()
 
-const CenteredWrapper = styled.div`
-  ${tw`flex items-center justify-center min-h-screen p-4`}
-`;
-
-const PopupContainer = styled.div`
-  ${tw`p-6 max-w-sm mx-auto bg-white shadow-xl rounded-xl`}
-  width: 300px;
-`;
-
 const Header = styled.div`
   /* 가운데 정렬 */
   ${tw`flex flex-col items-center justify-center mb-4 pb-2`}
-`;
-
-const Title = styled.h1`
-  ${tw`text-2xl font-extrabold text-gray-900 mt-2`}
 `;
 
 const CatImage = styled.img<{ isFound: boolean }>`
@@ -33,8 +20,8 @@ const CatImage = styled.img<{ isFound: boolean }>`
   transform: rotate(${props => props.isFound ? '0deg' : '15deg'});
 `;
 
-const ContentArea = styled.div`
-  ${tw`mt-4 text-center`}
+export const ContentArea = styled.div`
+  ${tw`flex flex-col items-center justify-center text-center flex-1 w-full`}
 `;
 
 const SiteInfo = styled.p`
@@ -54,7 +41,7 @@ const IsFound = styled.h3<{ isFound: boolean }>`
   color: ${props => (props.isFound ? '#0065FF' : '#111827')};
 `
 
-function MainPopup() {
+function Search() {
   const [company, setCompany] = useState<string | null>(null)
   const [currentSite, setCurrentSite] = useState<string | null>(null)
   
@@ -76,17 +63,14 @@ function MainPopup() {
   }, [fetchData])
 
   return (
-    <PopupContainer>
-      <Header>
-        <Title>Cat-ching</Title>
+    <QueryClientProvider client={queryClient}>
+      <ContentArea>
         <IsFound isFound={isCompanyFound}>{isCompanyFound ? '!' : '?'}</IsFound>
         <CatImage 
           src={isCompanyFound ? catFLogo : catQLogo} 
           alt="Cat Logo" 
           isFound={isCompanyFound} 
         />
-      </Header>
-      <ContentArea>
         {currentSite ? (
           <SiteInfo>
             <Header className='text-xl font-extrabold'>어떤 회사를 탐색할까요?</Header>
@@ -96,16 +80,6 @@ function MainPopup() {
           <AlertMessage>지원하는 구직사이트에서 사용해주세요</AlertMessage>
         )}
       </ContentArea>
-    </PopupContainer>
-  )
-}
-
-function Search() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <CenteredWrapper>
-        <MainPopup />
-      </CenteredWrapper>
     </QueryClientProvider>
   )
 }
