@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class AnalysisEntity {
+public class Analysis {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "company_position_id")  // DB 컬럼명 명시
@@ -33,10 +33,10 @@ public class AnalysisEntity {
     @Column(columnDefinition = "jsonb")
     private String content;
 
-    @Column(nullable = false)
+    @Column(name="created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    @Column
+    @Column(name="updated_at")
     private LocalDateTime updatedAt;
 
     @PreUpdate
