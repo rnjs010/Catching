@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <!-- 기본 SEO -->
+    <meta name="title" content="Cat-ching - 서비스 이용약관">
+    <meta name="description" content="Cat-ching 확장 프로그램의 서비스 이용약관 안내 페이지입니다.">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Cat-ching - 서비스 이용약관">
+    <meta property="og:description" content="Cat-ching 확장 프로그램의 이용약관 및 서비스 운영 원칙을 안내합니다.">
+    <meta property="og:image" content="https://cat-ching.netlify.app/assets/images/Catching.png">
+    <meta property="og:url" content="https://cat-ching.netlify.app/terms.html">
+    <meta property="og:type" content="article">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Cat-ching - 서비스 이용약관">
+    <meta name="twitter:description" content="Cat-ching 확장 프로그램 이용약관 안내.">
+    <meta name="twitter:image" content="https://cat-ching.netlify.app/assets/images/Catching.png">
+
+    <link rel="canonical" href="https://cat-ching.netlify.app/terms.html">
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cat-ching 서비스 이용약관</title>
+    <link rel="icon" href="/assets/images/favicon.png" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="google-site-verification" content="zTcHUdsznlJYzrpi4bvK02OjTF_eKUewlug5g0PiGfA" />
+  </head>
+
+  <body class="bg-gray-50">
+    <!-- NAV -->
+    <nav class="bg-white shadow-sm fixed w-full z-50">
+      <div class="max-w-7xl mx-auto px-4 flex items-center justify-between h-16">
+        <a href="/index.html">
+          <div class="flex items-center space-x-3">
+            <img src="/assets/images/logo.png" class="h-8" alt="Cat-ching Logo" />
+            <span class="text-2xl font-bold" style="color:#0058CC;">Cat-ching</span>
+          </div>
+        </a>
+
+        <div class="flex items-center">
+          <!-- Desktop links -->
+          <div class="hidden md:flex items-center space-x-6 text-gray-700 font-medium">
+            <a href="/index.html#features" class="hover:text-blue-600" data-i18n="nav_features">기능</a>
+            <a href="/index.html#preview" class="hover:text-blue-600" data-i18n="nav_preview">미리보기</a>
+            <a href="/index.html#guide" class="hover:text-blue-600" data-i18n="nav_guide">설치 방법</a>
+            <a href="/privacy.html" class="hover:text-blue-600" data-i18n="tos_nav_privacy">개인정보처리방침</a>
+            <a href="/terms.html" class="hover:text-blue-600 font-semibold" data-i18n="tos_nav_terms">서비스 이용약관</a>
+
+            <!-- 언어 선택 -->
+            <select id="langSelect" aria-label="언어 선택" class="border rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="ko">KO</option>
+              <option value="en">EN</option>
+            </select>
+          </div>
+
+          <!-- Mobile menu button -->
+          <button id="mobileMenuBtn" class="md:hidden ml-3 p-2 rounded-md text-gray-700 focus:outline-none" aria-label="메뉴 열기">☰</button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Mobile menu (hidden on md+) -->
+  <div id="mobileMenu" class="md:hidden hidden bg-white border-b absolute top-16 left-0 right-0 z-40">
+      <div class="px-4 py-3 space-y-2">
+        <a href="/index.html" class="block text-gray-700" data-i18n="nav_home">홈</a>
+        <a href="/privacy.html" class="block text-gray-700" data-i18n="tos_nav_privacy">개인정보처리방침</a>
+        <a href="/terms.html" class="block text-gray-700" data-i18n="tos_nav_terms">서비스 이용약관</a>
+        <div>
+          <label for="langSelectMobile" class="sr-only">언어 선택</label>
+          <select id="langSelectMobile" class="w-full border rounded-md px-2 py-1 text-sm">
+            <option value="ko">KO</option>
+            <option value="en">EN</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+  <!-- MAIN CONTENT -->
+  <main class="pt-32 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <h2 class="text-3xl font-bold text-gray-800 mb-8" data-i18n="tos_title">
+        서비스 이용약관
+      </h2>
+
+      <div class="space-y-8 text-gray-700 text-base">
+
+        <!-- Section 1 -->
+        <section>
+          <h3 class="text-2xl font-semibold text-gray-900" data-i18n="section1_title">
+            1. 목적
+          </h3>
+          <p data-i18n="section1_content">
+            본 약관은 Cat-ching 확장프로그램(이하 "서비스")의 이용과 관련하여 
+            서비스 제공자와 이용자 간의 권리 및 의무, 책임 사항 등을 규정함을 목적으로 합니다.
+          </p>
+        </section>
+
+        <!-- Section 2 -->
+        <section>
+          <h3 class="text-2xl font-semibold text-gray-900" data-i18n="section2_title">
+            2. 서비스 내용
+          </h3>
+
+          <ul class="list-disc pl-6 space-y-2">
+            <li data-i18n="section2_list1">
+              회사·직무 입력 시 관련 뉴스 분석, 핵심 사업, 경쟁사 정보를 제공합니다.
+            </li>
+            <li data-i18n="section2_list2">
+              웹 페이지 내 텍스트 및 이미지 기반 검색 기능을 지원합니다.
+            </li>
+            <li data-i18n="section2_list3">
+              검색 및 분석한 정보를 Notion 연동 또는 PDF로 저장하는 기능을 제공합니다.
+            </li>
+            <li data-i18n="section2_list4">
+              사용자가 브라우저에서 입력한 정보와 페이지 콘텐츠를 기반으로 자동 완성·데이터 정리 기능을 제공합니다.
+            </li>
+          </ul>
+        </section>
+
+        <!-- Section 3 -->
+        <section>
+          <h3 class="text-2xl font-semibold text-gray-900" data-i18n="section3_title">
+            3. 이용자의 의무
+          </h3>
+
+          <ul class="list-disc pl-6 space-y-2">
+            <li data-i18n="section3_list1">
+              이용자는 서비스 이용 시 관련 법령 및 약관을 준수해야 합니다.
+            </li>
+            <li data-i18n="section3_list2">
+              서비스 기능을 부정하게 이용하거나 타인의 권리를 침해해서는 안 됩니다.
+            </li>
+            <li data-i18n="section3_list3">
+              브라우저 내 콘텐츠를 분석하기 위해 접근 권한이 필요한 경우 이를 임의로 변경하거나 허위 제공해서는 안 됩니다.
+            </li>
+          </ul>
+        </section>
+
+        <!-- Section 4 -->
+        <section>
+          <h3 class="text-2xl font-semibold text-gray-900" data-i18n="section4_title">
+            4. 서비스 제공 및 변경
+          </h3>
+          <p data-i18n="section4_content">
+            Cat-ching은 서비스의 품질 향상을 위해 기능을 추가하거나 변경할 수 있으며, 
+            중요한 변경이 있을 경우 사전에 공지합니다.
+          </p>
+        </section>
+
+        <!-- Section 5 -->
+        <section>
+          <h3 class="text-2xl font-semibold text-gray-900" data-i18n="section5_title">
+            5. 서비스 이용 제한
+          </h3>
+          <p data-i18n="section5_content">
+            이용자가 약관을 위반하거나 서비스 운영에 지장을 초래하는 경우, 
+            서비스 제공자는 서비스 이용을 제한하거나 중단할 수 있습니다.
+          </p>
+        </section>
+
+        <!-- Section 6 -->
+        <section>
+          <h3 class="text-2xl font-semibold text-gray-900" data-i18n="section6_title">
+            6. 책임의 제한
+          </h3>
+
+          <ul class="list-disc pl-6 space-y-2">
+            <li data-i18n="section6_list1">
+              본 서비스는 사용자가 입력한 정보 및 공개된 콘텐츠를 기반으로 분석을 제공하며, 결과의 완전성·정확성·적시성을 보장하지 않습니다.
+            </li>
+            <li data-i18n="section6_list2">
+              Cat-ching은 사용자의 기기 환경, 네트워크 문제 등 외부 요인으로 발생한 장애에 대해 책임지지 않습니다.
+            </li>
+          </ul>
+        </section>
+
+        <!-- Section 7 -->
+        <section>
+          <h3 class="text-2xl font-semibold text-gray-900" data-i18n="section7_title">
+            7. 약관의 변경
+          </h3>
+          <p data-i18n="section7_content">
+            본 약관은 필요 시 변경될 수 있으며, 변경 시 적용일 및 변경 내용을 사전에 공지합니다.
+          </p>
+        </section>
+
+        <!-- Section 8 -->
+        <section>
+          <h3 class="text-2xl font-semibold text-gray-900" data-i18n="section8_title">
+            8. 적용 일자
+          </h3>
+          <p data-i18n="section8_content">
+            본 서비스 이용약관은 2025년 11월 15일부터 적용됩니다.
+          </p>
+        </section>
+      </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-gray-900 text-gray-300 py-10 text-center mt-12">
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+        <a href="/privacy.html" class="hover:text-white" data-i18n="tos_nav_privacy">개인정보처리방침</a>
+        <a href="/terms.html" class="hover:text-white" data-i18n="tos_nav_terms">서비스 이용약관</a>
+      </div>
+      <p class="mt-6 text-sm">© 2025 Cat-ching. All rights reserved.</p>
+    </footer>
+
+    <script>
+      const translations = {
+        nav_home: { ko: "홈", en: "Home" },
+        nav_features: { ko: "기능", en: "Features" },
+        nav_preview: { ko: "미리보기", en: "Preview" },
+        nav_guide: { ko: "설치 방법", en: "Install Guide" },
+        tos_nav_privacy: { ko: "개인정보처리방침", en: "Privacy Policy" },
+        tos_nav_terms: { ko: "서비스 이용약관", en: "Terms of Service" },
+
+        tos_title: { ko: "서비스 이용약관", en: "Terms of Service" },
+
+        section1_title: { ko: "1. 목적", en: "1. Purpose" },
+        section1_content: {
+          ko: "본 약관은 Cat-ching 확장프로그램의 이용과 관련하여 이용자와 서비스 제공자 간 권리, 의무, 책임 등을 규정합니다.",
+          en: "These Terms define the rights, obligations, and responsibilities between the user and the Cat-ching extension service provider."
+        },
+
+        section2_title: { ko: "2. 서비스 내용", en: "2. Service Description" },
+        section2_list1: {
+          ko: "회사·직무 입력 시 관련 뉴스 분석, 핵심 사업, 경쟁사 정보를 제공합니다.",
+          en: "Analyzes company and job input to provide related news, core business, and competitor information."
+        },
+        section2_list2: {
+          ko: "웹 페이지 내 텍스트 및 이미지 기반 검색 기능을 지원합니다.",
+          en: "Supports text and image-based search within web pages."
+        },
+        section2_list3: {
+          ko: "검색 및 분석 정보를 Notion 연동 또는 PDF로 저장할 수 있습니다.",
+          en: "Allows saving search/analysis results to Notion or PDF."
+        },
+        section2_list4: {
+          ko: "사용자 입력 및 페이지 콘텐츠 기반 자동 완성·정리 기능을 제공합니다.",
+          en: "Provides auto-completion and data organization based on user input and page content."
+        },
+
+        section3_title: { ko: "3. 이용자의 의무", en: "3. User Obligations" },
+        section3_list1: {
+          ko: "이용자는 서비스 이용 시 관련 법령 및 약관을 준수해야 합니다.",
+          en: "Users must comply with relevant laws and these terms."
+        },
+        section3_list2: {
+          ko: "서비스를 부정하게 이용하거나 타인의 권리를 침해해서는 안 됩니다.",
+          en: "Users must not abuse the service or violate others' rights."
+        },
+        section3_list3: {
+          ko: "브라우저 권한 관련 정보를 허위로 제공해서는 안 됩니다.",
+          en: "Users must not provide false information regarding browser permissions."
+        },
+
+        section4_title: { ko: "4. 서비스 제공 및 변경", en: "4. Service Modification" },
+        section4_content: {
+          ko: "Cat-ching은 기능 개선을 위해 서비스 내용을 변경할 수 있으며 중요한 변경 시 공지합니다.",
+          en: "Cat-ching may modify features for improvement and will announce significant changes."
+        },
+
+        section5_title: { ko: "5. 서비스 이용 제한", en: "5. Usage Restrictions" },
+        section5_content: {
+          ko: "약관 위반 시 서비스 이용이 제한되거나 중단될 수 있습니다.",
+          en: "Violation of the terms may result in restricted or suspended access to the service."
+        },
+
+        section6_title: { ko: "6. 책임의 제한", en: "6. Limitation of Liability" },
+        section6_list1: {
+          ko: "본 서비스는 분석 결과의 완전성·정확성을 보장하지 않습니다.",
+          en: "The service does not guarantee the completeness or accuracy of analysis results."
+        },
+        section6_list2: {
+          ko: "기기·네트워크 등 외부 요인으로 인한 장애에 책임지지 않습니다.",
+          en: "The service is not responsible for issues caused by external factors such as device or network problems."
+        },
+
+        section7_title: { ko: "7. 약관의 변경", en: "7. Changes to Terms" },
+        section7_content: {
+          ko: "약관은 변경될 수 있으며 변경 시 사전에 공지합니다.",
+          en: "The terms may be updated and users will be informed in advance."
+        },
+
+        section8_title: { ko: "8. 적용 일자", en: "8. Effective Date" },
+        section8_content: {
+          ko: "본 서비스 이용약관은 2025년 11월 15일부터 적용됩니다.",
+          en: "These Terms are effective from November 15, 2025."
+        }
+      };
+
+      function changeLanguage(lang) {
+        document.querySelectorAll("[data-i18n]").forEach((el) => {
+          const key = el.getAttribute("data-i18n");
+          el.textContent = translations[key]?.[lang] || translations[key]?.ko || el.textContent;
+        });
+      }
+
+      const userLang = navigator.language.startsWith("en") ? "en" : "ko";
+      const langSelect = document.getElementById("langSelect");
+      // set initial value and apply
+      langSelect.value = userLang;
+      changeLanguage(userLang);
+
+      // change 이벤트 리스너로 통일
+      langSelect.addEventListener("change", (e) => {
+        const newLang = e.target.value || "ko";
+        changeLanguage(newLang);
+      });
+
+      // 모바일 메뉴 토글 및 모바일 언어 선택 동작
+      const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+      const mobileMenu = document.getElementById('mobileMenu');
+      const langSelectMobile = document.getElementById('langSelectMobile');
+      if(mobileMenuBtn && mobileMenu){
+        mobileMenuBtn.addEventListener('click', ()=> mobileMenu.classList.toggle('hidden'));
+        mobileMenu.querySelectorAll('a').forEach(a=> a.addEventListener('click', ()=> mobileMenu.classList.add('hidden')));
+      }
+      if(langSelectMobile){
+        langSelectMobile.value = userLang;
+        langSelectMobile.addEventListener('change', e=>{
+          const v = e.target.value || 'ko';
+          changeLanguage(v);
+          langSelect.value = v;
+        });
+      }
+    </script>
+
+  </body>
+</html>
