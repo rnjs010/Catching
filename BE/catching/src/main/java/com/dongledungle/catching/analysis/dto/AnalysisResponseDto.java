@@ -12,11 +12,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL) // null인 필드는 JSON에서 제외
 public class AnalysisResponseDto {
-    private String status;          // "success" or "failure"
-    private String data;            // 분석 결과 JSON 문자열
+    private String company;
+    private String position;
+    private String data;
     private String source;          // "redis", "database", "ai"
-    private Long analysisId;        // DB에 저장된 ID
-    private Integer attempts;       // AI 호출 시도 횟수
 
     // 에러 정보
     private String errorType;       // "INVALID_RESPONSE", "MALFORMED_JSON" 등
@@ -25,24 +24,24 @@ public class AnalysisResponseDto {
     /**
      * 성공 응답 생성
      */
-    public static AnalysisResponseDto success(String data, String source, Long analysisId) {
+    public static AnalysisResponseDto success(String company, String position, String data, String source) {
         return AnalysisResponseDto.builder()
-                .status("success")
+                .company(company)
+                .position(position)
                 .data(data)
                 .source(source)
-                .analysisId(analysisId)
                 .build();
     }
 
     /**
      * 실패 응답 생성
      */
-    public static AnalysisResponseDto failure(String errorType, String errorMessage, int attempts) {
+    public static AnalysisResponseDto failure(String company, String position, String errorType, String errorMessage) {
         return AnalysisResponseDto.builder()
-                .status("failure")
+                .company(company)
+                .position(position)
                 .errorType(errorType)
                 .errorMessage(errorMessage)
-                .attempts(attempts)
                 .build();
     }
 

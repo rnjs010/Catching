@@ -5,6 +5,7 @@ import com.dongledungle.catching.analysis.dto.AnalysisResponseDto;
 import com.dongledungle.catching.analysis.service.AnalysisService;
 import com.dongledungle.catching.analysis.service.GeminiService;
 import com.dongledungle.catching.analysis.service.NotionService;
+import com.dongledungle.catching.common.response.ApiResponse;
 import com.dongledungle.catching.common.util.JsonParserUtil;
 import com.google.genai.ResponseStream;
 import com.google.genai.types.GenerateContentResponse;
@@ -99,8 +100,12 @@ public class AnalysisController {
     }
 
     @PostMapping("/analysis/raw")
-    public ResponseEntity<AnalysisResponseDto> analyzeRaw(@RequestBody AnalysisRequestDto request){
+    public ResponseEntity<ApiResponse<AnalysisResponseDto>> analyzeRaw(@RequestBody AnalysisRequestDto request){
+        log.info("분석 요청: 회사={}, 직무={}, 사용자={}",
+                request.getCompany(), request.getPosition(), request.getUserId());
+
         try{
+            log.debug("1단계: Redis 캐시 확인");
             String redisCache = analysisService.getFromRedisCache(
                     request.getCompany(),
                     request.getPosition()
@@ -108,33 +113,40 @@ public class AnalysisController {
 
             // redis 캐시 히트
             if(redisCache != null){
+                log.info("Redis 캐시 히트");
                 var analysis = analysisService.findAnalysisInCurrentWeek(
                         request.getCompany(),
                         request.getPosition()
                 );
 
                 if(analysis.isPresent()){
-                    analysisService.saveHistory(1L, analysis.get().getCompanyPositionId());
+                    analysisService.saveHistory(request.getUserId(), analysis.get().getCompanyPositionId());
                 }
 
                 return ResponseEntity.ok(
-                        AnalysisResponseDto.success(redisCache, "redis", null)
+                        ApiResponse.success(
+                        "Redis Hit",
+                            AnalysisResponseDto.success(request.getCompany(), request.getPosition(), redisCache, "redis")
+                        )
                 );
             }
 
             // db에서 해당 주차 데이터 조회
+            log.debug("2단계: db 확인");
+
             var weekAnalysis = analysisService.findAnalysisInCurrentWeek(
                     request.getCompany(),
                     request.getPosition()
             );
 
             if (weekAnalysis.isPresent()) {
+                log.info("db 조회 완료");
                 var entity = weekAnalysis.get();
                 String content = entity.getContent();
                 long analysisId = entity.getCompanyPositionId();
 
                 // History 저장
-                analysisService.saveHistory(1L, analysisId);
+                analysisService.saveHistory(request.getUserId(), analysisId);
 
                 // Redis에 저장 (다음번 조회 최적화)
                 analysisService.saveToRedisCache(
@@ -144,11 +156,17 @@ public class AnalysisController {
                 );
 
                 return ResponseEntity.ok(
-                        AnalysisResponseDto.success(content, "database", analysisId)
+                        ApiResponse.success(
+                            AnalysisResponseDto.success(request.getCompany(),
+                                    request.getPosition(),
+                                    content, "database"
+                            )
+                        )
                 );
             }
 
             // ai api 호출
+            log.debug("3단계: AI API 호출");
             int attemptCount = 0;
             Exception lastException = null;
 
@@ -196,7 +214,7 @@ public class AnalysisController {
                     );
 
                     // History 저장
-                    analysisService.saveHistory(1L, analysisId);
+                    analysisService.saveHistory(request.getUserId(), analysisId);
 
                     // Redis에 저장
                     analysisService.saveToRedisCache(
@@ -206,7 +224,15 @@ public class AnalysisController {
                     );
 
                     return ResponseEntity.ok(
-                            AnalysisResponseDto.success(finalJson, "ai", analysisId)
+                            ApiResponse.success(
+                                    "AI 분석이 완료되었습니다",
+                                    AnalysisResponseDto.success(
+                                                    request.getCompany(),
+                                                    request.getPosition(),
+                                                    finalJson,
+                                                    "ai"
+                                    )
+                            )
                     );
 
                 } catch (Exception e) {
@@ -220,18 +246,33 @@ public class AnalysisController {
                 }
             }
 
-            // ===== 최종 실패 =====
-            log.error("❌ AI 분석 최종 실패 ({}회 시도)", attemptCount);
+            log.error("AI 분석 최종 실패 ({}회 시도)", attemptCount);
             String errorType = determineErrorType(lastException);
             String errorMessage = getUserFriendlyMessage(errorType);
 
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .body(AnalysisResponseDto.failure(errorType, errorMessage, attemptCount));
+                    .body(
+                            ApiResponse.error(
+                                    HttpStatus.SERVICE_UNAVAILABLE.value(),
+                                    errorMessage,
+                                    AnalysisResponseDto.failure(
+                                            request.getCompany(),
+                                            request.getPosition(),
+                                            errorType,
+                                            errorMessage
+                                    )
+                            )
+                    );
 
         } catch (Exception e) {
             log.error("예상치 못한 오류 발생", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(AnalysisResponseDto.failure("UNKNOWN", e.getMessage(), 0));
+                    .body(
+                            ApiResponse.error(
+                                    HttpStatus.INTERNAL_SERVER_ERROR,
+                                    "서버 내부 오류가 발생했습니다"
+                            )
+                    );
         }
     }
 
