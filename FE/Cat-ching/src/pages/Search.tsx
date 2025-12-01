@@ -1,113 +1,87 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { useState, useEffect, useCallback } from 'react'
-import { detectCompany, onTabChange } from '@/features/scraper/hooks/companyDetect'
-import styled from 'styled-components';
-import tw from 'twin.macro';
-import catQLogo from '@/assets/cat_q.png';
-import catFLogo from '@/assets/cat_f.png';
-import GradientText from '@/components/GradientText';
-import SplitText from '@/components/SplitText';
+import styled from "styled-components";
+import tw from "twin.macro";
+import { Text } from "@/styles/typography";
+import GradientText from "@/components/GradientText";
+import SplitText from "@/components/SplitText";
+import catQLogo from "@/assets/cat_q.png";
+import catFLogo from "@/assets/cat_f.png";
+import { useState, useEffect, useCallback } from "react";
+import {
+  detectCompany,
+  onTabChange,
+} from "@/features/scraper/hooks/companyDetect";
 
-const queryClient = new QueryClient()
-
-const CenteredWrapper = styled.div`
-  ${tw`flex items-center justify-center min-h-screen p-4`}
-`;
-
-const PopupContainer = styled.div`
-  ${tw`p-6 max-w-sm mx-auto bg-white shadow-xl rounded-xl`}
-  width: 300px;
-`;
-
-const Header = styled.div`
-  /* 가운데 정렬 */
-  ${tw`flex flex-col items-center justify-center mb-4 pb-2`}
-`;
-
-const Title = styled.h1`
-  ${tw`text-2xl font-extrabold text-gray-900 mt-2`}
+const ContentArea = styled.div`
+  ${tw`flex flex-col items-center justify-center flex-1 w-full`}
 `;
 
 const CatImage = styled.img<{ isFound: boolean }>`
-  ${tw`h-16 w-16 transition-transform duration-500 ease-in-out mx-auto mt-0`}
-  transform: rotate(${props => props.isFound ? '0deg' : '15deg'});
+  ${tw`h-16 w-16 transition-transform duration-500 ease-in-out mx-auto mt-0 mb-4`}
+  transform: rotate(${({ isFound }) => (isFound ? 0 : 15)}deg);
 `;
 
-const ContentArea = styled.div`
-  ${tw`mt-4 text-center`}
-`;
-
-const SiteInfo = styled.p`
-  ${tw`mb-2 text-gray-700 block`}
-`;
-
-const CompanyName = styled.span`
-  ${tw`font-mono text-lg font-extrabold text-blue-600 truncate block`}
+const Wrapper = styled.div`
+  ${tw`h-32 flex flex-col items-center gap-2`}
 `;
 
 const AlertMessage = styled.p`
   ${tw`text-sm font-extrabold text-red-600 bg-red-100 p-3 rounded-lg border border-red-300`}
 `;
 
-const IsFound = styled.h3<{ isFound: boolean }>`
-  ${tw`text-2xl font-extrabold mt-2 mb-0`}
-  color: ${props => (props.isFound ? '#0065FF' : '#111827')};
-`
-
-function MainPopup() {
-  const [company, setCompany] = useState<string | null>(null)
-  const [currentSite, setCurrentSite] = useState<string | null>(null)
-  
-  // 회사를 찾았는지 여부를 판단하는 상태
-  const isCompanyFound = !!company; 
+export default function Search() {
+  const [company, setCompany] = useState<string | null>(null);
+  const [currentSite, setCurrentSite] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
-    const result = await detectCompany()
-    setCurrentSite(result.site)
-    setCompany(result.company)
-  }, [])
+    const result = await detectCompany();
+    setCurrentSite(result.site);
+    setCompany(result.company);
+  }, []);
 
   useEffect(() => {
-    fetchData()
+    fetchData();
     const cleanup = onTabChange(() => {
-      fetchData()
-    })
-    return cleanup
-  }, [fetchData])
+      fetchData();
+    });
+    return cleanup;
+  }, [fetchData]);
+
+  const ui = {
+    found: !!company,
+    text: company ? "!" : "?",
+    color: company ? "blue70" : "black",
+    image: company ? catFLogo : catQLogo,
+  } as const;
 
   return (
-    <PopupContainer>
-      <Header>
-        <Title>Cat-ching</Title>
-        <IsFound isFound={isCompanyFound}>{isCompanyFound ? '!' : '?'}</IsFound>
-        <CatImage 
-          src={isCompanyFound ? catFLogo : catQLogo} 
-          alt="Cat Logo" 
-          isFound={isCompanyFound} 
-        />
-      </Header>
+    <>
       <ContentArea>
-        {currentSite ? (
-          <SiteInfo>
-            <Header className='text-xl font-extrabold'>어떤 회사를 탐색할까요?</Header>
-            <CompanyName>{company ? <SplitText text={company} delay={180} /> : <GradientText children="채용 공고 분석 중..." />}</CompanyName>
-          </SiteInfo>
-        ) : (
-          <AlertMessage>지원하는 구직사이트에서 사용해주세요</AlertMessage>
-        )}
+        <Text variant="2xl" weight="extrabold" color={ui.color}>
+          {ui.text}
+        </Text>
+        <CatImage src={ui.image} alt="Cat Logo" isFound={ui.found} />
+        <Wrapper>
+          {currentSite ? (
+            <>
+              <Text variant="xl">어떤 회사를 탐색할까요?</Text>
+              {company ? (
+                <SplitText
+                  text={company}
+                  delay={180}
+                  className="text-2xl font-semibold text-[#0058CC] truncate block"
+                />
+              ) : (
+                <GradientText
+                  children="채용 공고 분석 중..."
+                  className="text-2xl font-semibold "
+                />
+              )}
+            </>
+          ) : (
+            <AlertMessage>지원하는 구직사이트에서 사용해주세요</AlertMessage>
+          )}
+        </Wrapper>
       </ContentArea>
-    </PopupContainer>
-  )
+    </>
+  );
 }
-
-function Search() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <CenteredWrapper>
-        <MainPopup />
-      </CenteredWrapper>
-    </QueryClientProvider>
-  )
-}
-
-export default Search;

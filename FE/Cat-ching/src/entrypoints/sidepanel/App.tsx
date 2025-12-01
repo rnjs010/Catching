@@ -5,6 +5,7 @@ import { GlobalFonts } from "@/styles/fonts";
 import Home from "@/pages/Home";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import Search from "@/pages/Search";
 
 const Container = styled.div`
   ${tw`w-full px-2 py-1 min-h-screen flex flex-col justify-between items-center`}
@@ -21,7 +22,8 @@ function App() {
 
       <ContentWrapper>
         <Header />
-        <Home />
+        {/* <Home /> */}
+        <Search />
         <Footer />
       </ContentWrapper>
     </Container>
