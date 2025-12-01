@@ -1,6 +1,7 @@
 package com.dongledungle.catching.analysis.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonRawValue;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -14,6 +15,7 @@ import lombok.NoArgsConstructor;
 public class AnalysisResponseDto {
     private String company;
     private String position;
+    @JsonRawValue
     private String data;
     private String source;          // "redis", "database", "ai"
 
