@@ -10,9 +10,8 @@ import SplitText from '@/components/SplitText';
 
 const queryClient = new QueryClient()
 
-const Header = styled.div`
-  /* 가운데 정렬 */
-  ${tw`flex flex-col items-center justify-center mb-4 pb-2`}
+const Header = styled.h1`
+  ${tw`flex flex-col items-center justify-center mt-4 pb-1`}
 `;
 
 const CatImage = styled.img<{ isFound: boolean }>`
@@ -28,17 +27,18 @@ const SiteInfo = styled.p`
   ${tw`mb-2 text-gray-700 block`}
 `;
 
-const CompanyName = styled.span`
-  ${tw`font-mono text-lg font-extrabold text-blue-600 truncate block`}
+const CompanyName = styled.div`
+  ${tw`text-3xl font-semibold text-blue-600 truncate block mb-2`}
 `;
 
 const AlertMessage = styled.p`
-  ${tw`text-sm font-extrabold text-red-600 bg-red-100 p-3 rounded-lg border border-red-300`}
+  ${tw`text-sm font-extrabold text-red-600 bg-red-100 p-3 m-4 rounded-lg border border-red-300`}
 `;
 
 const IsFound = styled.h3<{ isFound: boolean }>`
-  ${tw`text-2xl font-extrabold mt-2 mb-0`}
+  ${tw`text-2xl font-extrabold`}
   color: ${props => (props.isFound ? '#0065FF' : '#111827')};
+  margin: -0.5rem;
 `
 
 function Search() {
@@ -73,7 +73,7 @@ function Search() {
         />
         {currentSite ? (
           <SiteInfo>
-            <Header className='text-xl font-extrabold'>어떤 회사를 탐색할까요?</Header>
+            <Header className='text-2xl font-semibold'>어떤 회사를 탐색할까요?</Header>
             <CompanyName>{company ? <SplitText text={company} delay={180} /> : <GradientText children="채용 공고 분석 중..." />}</CompanyName>
           </SiteInfo>
         ) : (

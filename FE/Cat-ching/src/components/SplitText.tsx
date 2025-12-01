@@ -157,7 +157,7 @@ const SplitText: React.FC<SplitTextProps> = ({
       wordWrap: 'break-word',
       willChange: 'transform, opacity'
     };
-    const classes = `split-parent text-xl ${className}`;
+    const classes = `split-parent ${className}`;
     switch (tag) {
       case 'h1':
         return (

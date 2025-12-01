@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react";
 
 // See https://wxt.dev/api/config.html
 export default defineConfig({
-  srcDir: 'src',
+  srcDir: "src",
   modules: [], //'@wxt-dev/module-react'],
   manifest: {
     icons: {
@@ -13,7 +13,14 @@ export default defineConfig({
       96: "icon/icon96.png",
       128: "icon/icon128.png",
     },
-    permissions: ["activeTab", "storage", "tabs", "scripting", "sidePanel"],
+    permissions: [
+      "activeTab",
+      "storage",
+      "tabs",
+      "scripting",
+      "sidePanel",
+      "identity",
+    ],
     action: {
       default_icon: {
         32: "icon/icon32.png",
@@ -23,10 +30,15 @@ export default defineConfig({
       },
       default_title: "Cat-ching",
     },
-    name: 'Cat-ching',
-    description: 'AI 기반 취업 준비 지원 서비스',
-    version: '0.0.1',
-    host_permissions: ['https://*/*'],
+    name: "Cat-ching",
+    description: "AI 기반 취업 준비 지원 서비스",
+    version: "0.0.1",
+    host_permissions: ["https://*/*"],
+    oauth2: {
+      client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+      scopes: ["openid", "email", "profile"],
+    },
+    key: import.meta.env.VITE_CHROME_EXTENSION_KEY,
   },
   vite: () => ({
     plugins: [
