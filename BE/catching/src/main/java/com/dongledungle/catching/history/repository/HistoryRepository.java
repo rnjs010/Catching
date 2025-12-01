@@ -20,4 +20,7 @@ public interface HistoryRepository extends JpaRepository<History, Long> {
             LIMIT 5
             """)
     List<Object[]> findTop5ByYearWeek(@Param("yearMonthWeek") String yearMonthWeek);
+
+    // 특정 직무정보 ID의 조회수 조회
+    long countByCompanyPositionIdAndYearMonthWeek(Long companyPositionId, String yearMonthWeek);
 }

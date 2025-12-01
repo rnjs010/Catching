@@ -21,7 +21,7 @@ public class Analysis {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "company_position_id")  // DB 컬럼명 명시
-    private Long companyPositionId;  // Java는 camelCase
+    private Long companyPositionId;
 
     @Column(nullable = false)
     private String company;
