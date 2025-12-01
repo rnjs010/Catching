@@ -1,5 +1,9 @@
 import { defineConfig } from "wxt";
 import react from "@vitejs/plugin-react";
+import { config } from "dotenv";
+import { resolve } from "path";
+
+config({ path: resolve(__dirname, ".env") });
 
 // See https://wxt.dev/api/config.html
 export default defineConfig({
@@ -35,10 +39,10 @@ export default defineConfig({
     version: "0.0.1",
     host_permissions: ["https://*/*"],
     oauth2: {
-      client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+      client_id: process.env.VITE_GOOGLE_CLIENT_ID!,
       scopes: ["openid", "email", "profile"],
     },
-    key: import.meta.env.VITE_CHROME_EXTENSION_KEY,
+    key: process.env.VITE_CHROME_EXTENSION_KEY,
   },
   vite: () => ({
     plugins: [
