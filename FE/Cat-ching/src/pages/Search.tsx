@@ -5,11 +5,7 @@ import GradientText from "@/components/GradientText";
 import SplitText from "@/components/SplitText";
 import catQLogo from "@/assets/cat_q.png";
 import catFLogo from "@/assets/cat_f.png";
-import { useState, useEffect, useCallback } from "react";
-import {
-  detectCompany,
-  onTabChange,
-} from "@/features/scraper/hooks/companyDetect";
+import { useCompanyDetector } from "@/features/scraper/hooks/useCompanyDetector";
 
 const ContentArea = styled.div`
   ${tw`flex flex-col items-center justify-center flex-1 w-full`}
@@ -29,22 +25,7 @@ const AlertMessage = styled.p`
 `;
 
 export default function Search() {
-  const [company, setCompany] = useState<string | null>(null);
-  const [currentSite, setCurrentSite] = useState<string | null>(null);
-
-  const fetchData = useCallback(async () => {
-    const result = await detectCompany();
-    setCurrentSite(result.site);
-    setCompany(result.company);
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-    const cleanup = onTabChange(() => {
-      fetchData();
-    });
-    return cleanup;
-  }, [fetchData]);
+  const { company, currentSite } = useCompanyDetector();
 
   const ui = {
     found: !!company,
