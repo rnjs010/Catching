@@ -22,50 +22,31 @@ import java.util.Objects;
 @Service
 @RequiredArgsConstructor
 public class PopularAnalysisService {
-    private final RedisTemplate<String, String> redisTemplate;
     private final AnalysisRepository analysisRepository;
     private final HistoryRepository historyRepository;
-    private final Gson gson;
 
     /**
      * 특정 주차의 인기 분석 Top 5 조회 (실시간 조회수 포함)
      */
     public List<PopularAnalysisDto> getWeeklyPopular(String yearMonthWeek) {
-        // 1. Redis에서 Top 5 ID 목록 가져오기
-        String redisKey = "popular:weekly:" + yearMonthWeek;
-        String cachedIds = redisTemplate.opsForValue().get(redisKey);
+        List<Object[]> top5 = historyRepository.findTop5ByYearWeek(yearMonthWeek);
 
-        if (cachedIds == null) {
-            log.warn("Redis에 {}주차 인기 데이터 없음", yearMonthWeek);
-            return Collections.emptyList();
-        }
+        return top5.stream()
+                .map(arr -> {
+                    Long companyPositionId = (Long) arr[0];
+                    Long viewCount = (Long) arr[1];
 
-        // 2. ID 파싱
-        Type listType = new TypeToken<List<Long>>(){}.getType();
-        List<Long> top5Ids = gson.fromJson(cachedIds, listType);
-
-        // 3. 각 ID에 대해 분석 정보 + 실시간 조회수 조회
-        return top5Ids.stream()
-                .map(id -> {
-                    // Analysis 정보 조회
-                    Analysis analysis = analysisRepository.findById(id)
+                    Analysis analysis = analysisRepository.findById(companyPositionId)
                             .orElse(null);
 
-                    if (analysis == null) {
-                        return null;
-                    }
-
-                    // 실시간 조회수 계산 (History 테이블에서)
-                    long viewCount = historyRepository.countByCompanyPositionIdAndYearMonthWeek(
-                            id, yearMonthWeek
-                    );
+                    if (analysis == null) return null;
 
                     return PopularAnalysisDto.builder()
-                            .companyPositionId(id)
+                            .companyPositionId(companyPositionId)
                             .company(analysis.getCompany())
                             .position(analysis.getPosition())
                             .content(analysis.getContent())
-                            .viewCount(viewCount)  // 실시간 조회수!
+                            .viewCount(viewCount)
                             .yearMonthWeek(yearMonthWeek)
                             .build();
                 })
@@ -79,7 +60,6 @@ public class PopularAnalysisService {
     public List<PopularAnalysisDto> getCurrentWeekPopular() {
         String currentWeek = WeekUtil.getCurrentYearMonthWeek();
 
-        // 현재 주는 실시간 집계 (Redis에 없을 수 있음)
         List<Object[]> top5 = historyRepository.findTop5ByYearWeek(currentWeek);
 
         return top5.stream()
