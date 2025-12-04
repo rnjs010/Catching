@@ -1,7 +1,7 @@
 import { createWorker } from "tesseract.js";
 
 export const useOCR = () => {
-  const captureAndOCR = async (): Promise<string> => {
+  const captureAndOCR = async (onOCRStart?: () => void): Promise<string> => {
     try {
       // @ts-ignore: WXT global browser object
       const browserAPI = typeof browser !== "undefined" ? browser : chrome;
@@ -32,6 +32,11 @@ export const useOCR = () => {
         throw new Error("Crop cancelled");
       }
 
+      // 크롭 완료, OCR 처리 시작 알림
+      if (onOCRStart) {
+        onOCRStart();
+      }
+
       const worker = await createWorker("kor+eng", 1, {
         corePath: browserAPI.runtime.getURL(
           "/tesseract/tesseract-core.wasm.js"
@@ -40,7 +45,6 @@ export const useOCR = () => {
         langPath: browserAPI.runtime.getURL("/tesseract"),
         workerBlobURL: false,
         gzip: false,
-        logger: (m: any) => console.log(m),
       });
 
       const result = await worker.recognize(cropResult.croppedImage);
