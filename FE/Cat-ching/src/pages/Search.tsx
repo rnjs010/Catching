@@ -81,6 +81,28 @@ function SearchContent() {
     isComplete: !!company && !!jobTitle,
   } as const;
 
+  const UI_TEXT = {
+    whatCompany: "어떤 회사를 탐색할까요?",
+    whatJob: "어떤 직무에 지원할 예정인가요?",
+    notSupported: "직접 입력해주세요",
+    instruction: {
+      capture: "(원하는 직무를 캡쳐하세요)",
+      scraper: "(원하는 직무를 드래그해주세요)",
+    },
+    toggleButton: {
+      capture: "스크래퍼로 변경",
+      scraper: "캡쳐로 변경",
+    },
+    analyzingMessage: "채용 공고 분석 중...",
+    getAnalyzingMessage: (
+      mode: "capture" | "scraper",
+      isProcessing: boolean
+    ) => {
+      if (mode === "scraper") return "직무를 드래그해주세요";
+      return isProcessing ? "직무 분석 중..." : "OCR할 영역을 선택하세요";
+    },
+  } as const;
+
   const fetchData = useCallback(async () => {
     if (!isDetectionActive) return;
     if (isCompanyEditableRef.current || isJobEditableRef.current) return; // 편집 중에는 감지 중단
@@ -95,7 +117,7 @@ function SearchContent() {
       setCurrentSite(result.site);
       if (!result.company) {
         setTimeout(() => {
-          setCompany("직접 입력해주세요");
+          setCompany(UI_TEXT.notSupported);
         }, 3000);
       }
     }
@@ -189,19 +211,19 @@ function SearchContent() {
             color={ui.isComplete ? "gray30" : "black"}
             tw="mb-2 block"
           >
-            어떤 회사를 탐색할까요?
+            {UI_TEXT.whatCompany}
           </Text>
           <Name>
             <EditableText
               text={company}
-              isLoaded={isCompanyLoaded || company === "직접 입력해주세요"}
+              isLoaded={isCompanyLoaded || company === UI_TEXT.notSupported}
               isEditable={isCompanyEditable}
               hasAnimated={hasCompanyAnimated}
               onEdit={() => setIsCompanyEditable(true)}
               onSave={(newText) => setCompany(newText)}
               onCancel={() => setIsCompanyEditable(false)}
-              skipAnimation={company === "직접 입력해주세요"}
-              placeholder="채용 공고 분석 중..."
+              skipAnimation={company === UI_TEXT.notSupported}
+              placeholder={UI_TEXT.analyzingMessage}
               delayCalculator={delayLength}
               onAnimationComplete={handleCompanyAnimationComplete}
             />
@@ -211,7 +233,7 @@ function SearchContent() {
         <JobSearchSection
           isVisible={
             (isJobSectionEverOpened || isCompanyLoaded) &&
-            company !== "직접 입력해주세요"
+            company !== UI_TEXT.notSupported
           }
         >
           <div className="mt-12 mb-4">
@@ -221,20 +243,14 @@ function SearchContent() {
               color={ui.isComplete ? "gray30" : "black"}
               tw="mb-2 block"
             >
-              어떤 직무에 지원할 예정인가요?
+              {UI_TEXT.whatJob}
             </Text>
 
             {!jobTitle && !isAnalyzing && (
               <>
-                {searchMode === "capture" ? (
-                  <Text variant="xs" color="blue60" tw="mb-4 block">
-                    (원하는 직무를 캡쳐하세요)
-                  </Text>
-                ) : (
-                  <Text variant="xs" color="blue60" tw="mb-4 block">
-                    (원하는 직무를 드래그해주세요)
-                  </Text>
-                )}
+                <Text variant="xs" color="blue60" tw="mb-4 block">
+                  {UI_TEXT.instruction[searchMode]}
+                </Text>
                 <div className="flex flex-col items-center gap-2">
                   <ActionButton onClick={handleAction}>
                     {searchMode === "capture" ? (
@@ -247,9 +263,7 @@ function SearchContent() {
                     onClick={toggleSearchMode}
                     className="text-xs text-gray-400 underline mt-2"
                   >
-                    {searchMode === "capture"
-                      ? "스크래퍼로 변경"
-                      : "캡쳐로 변경"}
+                    {UI_TEXT.toggleButton[searchMode]}
                   </button>
                 </div>
               </>
@@ -258,11 +272,7 @@ function SearchContent() {
               {isAnalyzing && (
                 <div className="py-4">
                   <GradientText>
-                    {searchMode === "capture"
-                      ? isOCRProcessing
-                        ? "직무 분석 중..."
-                        : "OCR할 영역을 선택하세요"
-                      : "직무를 드래그해주세요"}
+                    {UI_TEXT.getAnalyzingMessage(searchMode, isOCRProcessing)}
                   </GradientText>
                 </div>
               )}
