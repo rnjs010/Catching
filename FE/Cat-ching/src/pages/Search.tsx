@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   detectCompany,
   onTabChange,
@@ -8,14 +8,12 @@ import styled from "styled-components";
 import tw from "twin.macro";
 import catQLogo from "@/assets/cat_q.png";
 import catFLogo from "@/assets/cat_f.png";
-import GradientText from "@/components/GradientText";
-import SplitText from "@/components/SplitText";
 import { useOCR } from "@/features/OCR/hooks/useOCR";
 import { usePositionScraper } from "@/features/scraper/hooks/positionScraper";
 import { Scan, MousePointerClick } from "lucide-react";
 import { JobSearchSection } from "@/features/search/components/JobSearchSection";
 import { SearchButton } from "@/features/search/components/SearchButton";
-import { EditButton } from "@/features/search/components/EditButton";
+import { EditableText } from "@/features/search/components/EditableText";
 import { Text } from "@/styles/typography";
 
 const queryClient = new QueryClient();
@@ -39,19 +37,6 @@ const AlertMessage = styled.p`
 
 const ActionButton = styled.button`
   ${tw`p-4 rounded-full bg-blue-50 text-blue-600 shadow-sm`}
-`;
-
-const EditInput = styled.input`
-  ${tw`text-3xl font-semibold text-blue-600 text-center bg-transparent focus:outline-none`}
-  outline: none !important;
-  box-shadow: none !important;
-  width: auto;
-  min-width: 100px;
-
-  &:focus {
-    outline: none !important;
-    box-shadow: none !important;
-  }
 `;
 
 function SearchContent() {
@@ -81,9 +66,9 @@ function SearchContent() {
   const [hasJobAnimated, setHasJobAnimated] = useState(false);
   const [isJobSectionEverOpened, setIsJobSectionEverOpened] = useState(false);
 
-  // 편집 취소를 위한 백업 값
-  const [companyBackup, setCompanyBackup] = useState<string | null>(null);
-  const [jobTitleBackup, setJobTitleBackup] = useState<string>("");
+  // 편집 상태를 ref로 추적 (fetchData가 최신 값을 참조하도록)
+  const isCompanyEditableRef = useRef(isCompanyEditable);
+  const isJobEditableRef = useRef(isJobEditable);
 
   const { captureAndOCR, getSelectionText } = useOCR();
   const { startSelectionMonitor } = usePositionScraper();
@@ -98,7 +83,7 @@ function SearchContent() {
 
   const fetchData = useCallback(async () => {
     if (!isDetectionActive) return;
-    if (isCompanyEditable || isJobEditable) return; // 편집 중에는 감지 중단
+    if (isCompanyEditableRef.current || isJobEditableRef.current) return; // 편집 중에는 감지 중단
 
     const result = await detectCompany();
     if (result.company && result.company !== company) {
@@ -109,10 +94,12 @@ function SearchContent() {
     } else if (!result.company && !company) {
       setCurrentSite(result.site);
       if (!result.company) {
-        setCompany("직접 입력해주세요");
+        setTimeout(() => {
+          setCompany("직접 입력해주세요");
+        }, 3000);
       }
     }
-  }, [isDetectionActive, company, isCompanyEditable, isJobEditable]);
+  }, [isDetectionActive, company, currentSite]);
 
   useEffect(() => {
     fetchData();
@@ -122,10 +109,22 @@ function SearchContent() {
     return cleanup;
   }, [fetchData]);
 
+  // ref 값을 최신 상태로 업데이트
+  useEffect(() => {
+    isCompanyEditableRef.current = isCompanyEditable;
+    isJobEditableRef.current = isJobEditable;
+  }, [isCompanyEditable, isJobEditable]);
+
   const handleCompanyAnimationComplete = () => {
     setIsCompanyLoaded(true);
     setHasCompanyAnimated(true); // 애니메이션 한번하면 일반텍스트
     setIsJobSectionEverOpened(true); // 직무 열린거 유지
+  };
+
+  const delayLength = (company: string) => {
+    if (company.length <= 6) return 180;
+    if (company.length <= 12) return 130;
+    return 80;
   };
 
   const handleJobAnimationComplete = () => {
@@ -193,51 +192,19 @@ function SearchContent() {
             어떤 회사를 탐색할까요?
           </Text>
           <Name>
-            {isCompanyEditable ? (
-              <EditInput
-                value={company || ""}
-                onChange={(e) => setCompany(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    setIsCompanyEditable(false);
-                  } else if (e.key === "Escape") {
-                    setCompany(companyBackup); // 취소하면 원래 값으로 복원
-                    setIsCompanyEditable(false);
-                  }
-                }}
-                onBlur={() => setIsCompanyEditable(false)}
-                size={company?.length || 10}
-                autoFocus
-              />
-            ) : (
-              <>
-                {company ? (
-                  hasCompanyAnimated || company == "직접 입력해주세요" ? (
-                    <span className="text-3xl font-semibold text-blue-600">
-                      {company}
-                    </span>
-                  ) : (
-                    <SplitText
-                      text={company}
-                      delay={180}
-                      onLetterAnimationComplete={handleCompanyAnimationComplete}
-                    />
-                  )
-                ) : (
-                  <GradientText children="채용 공고 분석 중..." />
-                )}
-              </>
-            )}
-            {isCompanyLoaded ||
-              (company == "직접 입력해주세요" && (
-                <EditButton
-                  onClick={() => {
-                    setCompanyBackup(company);
-                    setIsCompanyEditable(true);
-                  }}
-                  className={isCompanyEditable ? "invisible" : ""}
-                />
-              ))}
+            <EditableText
+              text={company}
+              isLoaded={isCompanyLoaded || company === "직접 입력해주세요"}
+              isEditable={isCompanyEditable}
+              hasAnimated={hasCompanyAnimated}
+              onEdit={() => setIsCompanyEditable(true)}
+              onSave={(newText) => setCompany(newText)}
+              onCancel={() => setIsCompanyEditable(false)}
+              skipAnimation={company === "직접 입력해주세요"}
+              placeholder="채용 공고 분석 중..."
+              delayCalculator={delayLength}
+              onAnimationComplete={handleCompanyAnimationComplete}
+            />
           </Name>
         </div>
 
@@ -301,56 +268,18 @@ function SearchContent() {
               )}
 
               {jobTitle && (
-                <div className="flex items-center justify-center gap-2 mt-2">
-                  {isJobEditable ? (
-                    <EditInput
-                      value={jobTitle}
-                      onChange={(e) => setJobTitle(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          setIsJobEditable(false);
-                        } else if (e.key === "Escape") {
-                          setJobTitle(jobTitleBackup);
-                          setIsJobEditable(false);
-                        }
-                      }}
-                      onBlur={() => setIsJobEditable(false)}
-                      size={jobTitle.length || 10}
-                      autoFocus
-                    />
-                  ) : (
-                    <>
-                      {searchMode === "capture" ? (
-                        hasJobAnimated ? (
-                          <span className="text-3xl font-semibold text-blue-600">
-                            {jobTitle}
-                          </span>
-                        ) : (
-                          <SplitText
-                            text={jobTitle}
-                            delay={180}
-                            onLetterAnimationComplete={
-                              handleJobAnimationComplete
-                            }
-                          />
-                        )
-                      ) : (
-                        <span className="text-3xl font-semibold text-blue-600">
-                          {jobTitle}
-                        </span>
-                      )}
-                    </>
-                  )}
-                  {isJobLoaded && (
-                    <EditButton
-                      onClick={() => {
-                        setJobTitleBackup(jobTitle);
-                        setIsJobEditable(true);
-                      }}
-                      className={isJobEditable ? "invisible" : ""}
-                    />
-                  )}
-                </div>
+                <EditableText
+                  text={jobTitle}
+                  isLoaded={isJobLoaded}
+                  isEditable={isJobEditable}
+                  hasAnimated={hasJobAnimated}
+                  onEdit={() => setIsJobEditable(true)}
+                  onSave={(newText) => setJobTitle(newText)}
+                  onCancel={() => setIsJobEditable(false)}
+                  skipAnimation={searchMode === "scraper"}
+                  delayCalculator={delayLength}
+                  onAnimationComplete={handleJobAnimationComplete}
+                />
               )}
             </Name>
           </div>
