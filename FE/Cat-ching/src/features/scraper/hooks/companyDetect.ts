@@ -85,8 +85,21 @@ function extractCompany(site: string, url: string): string | null {
       const isModal = document.body.classList.contains("no-scroll");
 
       if (isModal) {
-        const el = document.querySelector<HTMLElement>("span.ml-3");
-        return el?.textContent?.trim() || null;
+        // left: 45px 스타일을 가진 활성 모달 찾기
+        // 메인 페이지에서는 모달이 여러개 렌더된 상태로 스타일만 변경되면서 위치 이동.
+        // left: 45px인 모달이 활성 모달.
+        const modals = document.querySelectorAll<HTMLElement>(
+          '.transition-left[class*="recruit-slide"]'
+        );
+
+        for (const modal of modals) {
+          const leftValue = modal.style.left;
+          if (leftValue && leftValue.includes("45px")) {
+            // 활성 모달 내부의 span.ml-3 찾기
+            const el = modal.querySelector<HTMLElement>("span.ml-3");
+            return el?.textContent?.trim() || null;
+          }
+        }
       }
     }
 

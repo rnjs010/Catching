@@ -67,9 +67,12 @@ function SearchContent() {
   const [hasJobAnimated, setHasJobAnimated] = useState(false);
   const [isJobSectionEverOpened, setIsJobSectionEverOpened] = useState(false);
 
-  // 편집 상태를 ref로 추적 (fetchData가 최신 값을 참조하도록)
+  // 회사나 직무 편집 상태를 ref로 추적 (fetchData가 최신 값을 참조하도록)
   const isCompanyEditableRef = useRef(isCompanyEditable);
   const isJobEditableRef = useRef(isJobEditable);
+
+  // "직접 입력해주세요" 타이머 추적
+  const notSupportedTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const { captureAndOCR, getSelectionText } = useOCR();
   const { startSelectionMonitor } = usePositionScraper();
@@ -109,26 +112,57 @@ function SearchContent() {
     if (isCompanyEditableRef.current || isJobEditableRef.current) return; // 편집 중에는 감지 중단
 
     const result = await detectCompany();
+
+    // 회사 감지됨
     if (result.company && result.company !== company) {
+      // 대기 중인 타이머 취소
+      if (notSupportedTimerRef.current) {
+        clearTimeout(notSupportedTimerRef.current);
+        notSupportedTimerRef.current = null;
+      }
+
       setCurrentSite(result.site);
       setCompany(result.company);
       setIsCompanyLoaded(false);
-      setHasCompanyAnimated(false); // 새 회사 감지 시 애니메이션 리셋
-    } else if (!result.company && !company) {
+      setHasCompanyAnimated(false);
+    }
+    // 회사 감지 안 됨
+    else if (!result.company) {
       setCurrentSite(result.site);
-      if (!result.site) {
-        setTimeout(async () => {
+
+      // 이전에 회사가 있었다면 초기화 (모달 닫힘 등)
+      if (company && company !== UI_TEXT.notSupported) {
+        setCompany(null);
+        setIsCompanyLoaded(false);
+        setHasCompanyAnimated(false);
+      }
+
+      // 지원하지 않는 사이트면 3초 후 "직접 입력해주세요" 표시
+      if (!company) {
+        // 이전 타이머 있으면 취소
+        if (notSupportedTimerRef.current) {
+          clearTimeout(notSupportedTimerRef.current);
+        }
+
+        // 새 타이머 시작
+        notSupportedTimerRef.current = setTimeout(async () => {
+          // 3초 후 다시 URL 검증
           const [tab] = await browser.tabs.query({
             active: true,
             currentWindow: true,
           });
+
           if (!tab.id || !tab.url) {
             setCompany(UI_TEXT.notSupported);
+            return;
           }
-          const site = getSiteFromUrl(tab.url!);
-          if (site == "other") {
+
+          const site = getSiteFromUrl(tab.url);
+          // 여전히 지원하지 않는 사이트면 메시지 표시
+          if (site === "other") {
             setCompany(UI_TEXT.notSupported);
           }
+          // 지원하는 사이트로 이동했으면 fetchData가 알아서 처리
         }, 3000);
       }
     }
@@ -137,6 +171,19 @@ function SearchContent() {
   useEffect(() => {
     fetchData();
     const cleanup = onTabChange(() => {
+      // 대기 중인 타이머 있으면 취소
+      if (notSupportedTimerRef.current) {
+        clearTimeout(notSupportedTimerRef.current);
+        notSupportedTimerRef.current = null;
+      }
+
+      // 만약 탭 이동 시에 company가 직접 입력해주세요로 되어 있다면 초기화
+      if (company === UI_TEXT.notSupported) {
+        setCompany(null);
+        setIsCompanyLoaded(false);
+        setHasCompanyAnimated(false);
+      }
+
       fetchData();
     });
     return cleanup;
@@ -198,6 +245,8 @@ function SearchContent() {
       console.error(e);
       setIsAnalyzing(false);
       setIsOCRProcessing(false);
+      // 취소/에러 시 회사 감지 재개
+      setIsDetectionActive(true);
     }
   };
 

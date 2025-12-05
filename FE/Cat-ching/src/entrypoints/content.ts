@@ -8,6 +8,7 @@ export default defineContentScript({
     if (window.location.href.includes("jasoseol.com")) {
       let lastModalState = false;
       let lastUrl = window.location.href;
+      let lastActiveModalIndex: number | null = null;
 
       const sendUpdate = (delay = 1000) => {
         setTimeout(() => {
@@ -20,8 +21,28 @@ export default defineContentScript({
         const hasNoScroll = document.body.classList.contains("no-scroll");
         const isModal = backdrop !== null || hasNoScroll;
 
-        if (isModal !== lastModalState) {
+        let currentActiveModalIndex: number | null = null;
+        if (isModal && !window.location.href.includes("/recruit/")) {
+          // left: 45px 스타일을 가진 모달 찾기
+          const modals = document.querySelectorAll<HTMLElement>(
+            '.transition-left[class*="recruit-slide"]'
+          );
+          modals.forEach((modal, index) => {
+            const leftValue = modal.style.left;
+            // left: 45px 형태 체크
+            if (leftValue && leftValue.includes("45px")) {
+              currentActiveModalIndex = index;
+            }
+          });
+        }
+
+        // 모달 상태 변경 또는 활성 모달 변경 시 업데이트
+        if (
+          isModal !== lastModalState ||
+          (isModal && currentActiveModalIndex !== lastActiveModalIndex)
+        ) {
           lastModalState = isModal;
+          lastActiveModalIndex = currentActiveModalIndex;
           sendUpdate();
         }
       };
@@ -39,7 +60,7 @@ export default defineContentScript({
 
       observer.observe(document.body, {
         attributes: true,
-        attributeFilter: ["class"],
+        attributeFilter: ["class", "style"],
         childList: true,
         subtree: true,
       });
@@ -98,6 +119,7 @@ export default defineContentScript({
     // 잡다 모달 감지
     if (window.location.href.includes("jobda.im/jobs")) {
       let lastModalState = false;
+      let lastCompanyName: string | null = null;
 
       const sendUpdate = (delay = 500) => {
         setTimeout(() => {
@@ -106,23 +128,62 @@ export default defineContentScript({
       };
 
       const checkModalState = () => {
-        const modalContent = document.querySelector("#modal ._modal_u2wjv_24");
-        const isModal = modalContent !== null;
+        // #modal 안에 자식 요소가 있는지 확인 -> 자식 div._modal_u2wjv_24가 생기면 모달창 생긴 것.
+        const modalContainer = document.querySelector("#modal");
+        const isModal = !!(
+          modalContainer && modalContainer.children.length > 0
+        );
 
-        if (isModal !== lastModalState) {
+        // 모달이 열려있으면 회사명도 체크 -> 열린 채로 옆으로 넘기는 경우도 확인하기 위함
+        let currentCompanyName: string | null = null;
+        if (isModal) {
+          const companyElement = document.querySelector<HTMLElement>(
+            "a.jobPostModal_jobPostInfoText__zA5OZ"
+          );
+          currentCompanyName = companyElement?.textContent?.trim() || null;
+        }
+
+        // 모달 상태가 변경되었거나, 모달 내 회사명이 변경되었으면 업데이트
+        if (
+          isModal !== lastModalState ||
+          (isModal && currentCompanyName !== lastCompanyName)
+        ) {
           lastModalState = isModal;
+          lastCompanyName = currentCompanyName;
           sendUpdate(500);
         }
       };
 
-      const modalContainer = document.querySelector("#modal");
+      // MutationObserver로 #modal 감지
+      const setupObserver = () => {
+        const modalContainer = document.querySelector("#modal");
 
-      if (modalContainer) {
-        const observer = new MutationObserver(() => {
-          checkModalState();
+        if (modalContainer) {
+          const observer = new MutationObserver(() => {
+            checkModalState();
+          });
+
+          observer.observe(modalContainer, {
+            childList: true,
+            subtree: true,
+          });
+
+          console.log("Jobda modal observer set up");
+          return true;
+        }
+        return false;
+      };
+
+      // 즉시 시도
+      if (!setupObserver()) {
+        // #modal이 아직 없으면 body를 감시하다가 #modal이 생기면 설정
+        const bodyObserver = new MutationObserver(() => {
+          if (setupObserver()) {
+            bodyObserver.disconnect();
+          }
         });
 
-        observer.observe(modalContainer, {
+        bodyObserver.observe(document.body, {
           childList: true,
           subtree: true,
         });
