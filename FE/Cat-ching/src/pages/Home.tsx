@@ -36,11 +36,6 @@ export const LoginButton = styled.button`
   }
 `;
 
-// Text Animation
-const handleAnimationComplete = () => {
-  console.log("Animation completed!");
-};
-
 // 차트 관련
 const DefaultChartText = () => (
   <>
@@ -67,7 +62,6 @@ const HoverChartText = ({ item }: { item: PieItem }) => (
       delay={80}
       animateBy="letters"
       direction="top"
-      onAnimationComplete={handleAnimationComplete}
       className="text-2xl font-semibold text-[#0058CC]"
     />
     <Text variant="sm" weight="normal" color="gray60">
