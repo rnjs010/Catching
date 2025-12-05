@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import {
   detectCompany,
   onTabChange,
+  getSiteFromUrl,
 } from "@/features/scraper/hooks/companyDetect";
 import styled from "styled-components";
 import tw from "twin.macro";
@@ -115,9 +116,19 @@ function SearchContent() {
       setHasCompanyAnimated(false); // 새 회사 감지 시 애니메이션 리셋
     } else if (!result.company && !company) {
       setCurrentSite(result.site);
-      if (!result.company) {
-        setTimeout(() => {
-          setCompany(UI_TEXT.notSupported);
+      if (!result.site) {
+        setTimeout(async () => {
+          const [tab] = await browser.tabs.query({
+            active: true,
+            currentWindow: true,
+          });
+          if (!tab.id || !tab.url) {
+            setCompany(UI_TEXT.notSupported);
+          }
+          const site = getSiteFromUrl(tab.url!);
+          if (site == "other") {
+            setCompany(UI_TEXT.notSupported);
+          }
         }, 3000);
       }
     }

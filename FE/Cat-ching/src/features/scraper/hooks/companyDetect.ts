@@ -1,6 +1,6 @@
 import { SiteType, DetectResult } from "@/types/feature";
 
-function getSiteFromUrl(url: string): SiteType {
+export function getSiteFromUrl(url: string): SiteType {
   if (url.includes("jobkorea.co.kr")) return "jobkorea";
   if (url.includes("saramin.co.kr")) return "saramin";
   if (url.includes("wanted.co.kr")) return "wanted";
