@@ -62,95 +62,73 @@ function extractCompany(site: string, url: string): string | null {
   }
 
   if (site === "jasoseol") {
-    // /recruit/숫자 페이지
-    if (/\/recruit\/\d+/.test(url)) {
-      const isModal =
-        document.querySelector(".recruit-slide-backdrop") !== null;
-
-      if (isModal) {
-        const el = document.querySelector<HTMLElement>(".ec-name-value");
-        return el?.textContent?.trim() || null;
-      } else {
-        const el = document.querySelector<HTMLElement>("span.ml-3");
-        return el?.textContent?.trim() || null;
-      }
-    } else if (/\/intern\/\d+/.test(url)) {
-      // /intern/숫자 페이지 - 45px 모달에서 회사명 찾기
-      const isModal = document.body.classList.contains("no-scroll");
-
-      if (isModal) {
-        // left: 45px 스타일을 가진 활성 모달 찾기
-        const modals = document.querySelectorAll<HTMLElement>(
-          '.transition-left[class*="recruit-slide"]'
-        );
-
-        for (const modal of modals) {
-          const leftValue = modal.style.left;
-          if (leftValue && leftValue.includes("45px")) {
-            // 활성 모달 내부의 span.ml-3 찾기
-            const el = modal.querySelector<HTMLElement>("span.ml-3");
-            return el?.textContent?.trim() || null;
-          }
-        }
-      } else {
-        // 모달이 아닌 경우 일반 span.ml-3 찾기
-        const el = document.querySelector<HTMLElement>("span.ml-3");
-        return el?.textContent?.trim() || null;
-      }
-    }
-
     const urlObj = new URL(url);
 
-    // 메인 페이지 모달
-    if (
+    // 모달 페이지 회사명 찾기
+    const getActiveModalCompanyName = () => {
+      const modals = document.querySelectorAll<HTMLElement>(
+        '.transition-left[class*="recruit-slide"]'
+      );
+
+      for (const modal of modals) {
+        if (modal.style.left?.includes("45px")) {
+          return (
+            modal
+              .querySelector<HTMLElement>("span.ml-3")
+              ?.textContent?.trim() || null
+          );
+        }
+      }
+      return null;
+    };
+
+    // 일반 페이지 회사명 찾기
+    const getNormalPageCompanyName = () =>
+      document.querySelector<HTMLElement>("span.ml-3")?.textContent?.trim() ||
+      null;
+
+    // 모달 여부 확인
+    const isModalOpen = () => document.body.classList.contains("no-scroll");
+
+    // recruit 페이지
+    if (/\/recruit\/\d+/.test(url)) {
+      if (document.querySelector(".recruit-slide-backdrop")) {
+        // recruit 상세 모달
+        return (
+          document
+            .querySelector<HTMLElement>(".ec-name-value")
+            ?.textContent?.trim() || null
+        );
+      } else {
+        // 일반 recruit 페이지
+        return getNormalPageCompanyName();
+      }
+    }
+    // intern 페이지
+    else if (/\/intern\/\d+/.test(url)) {
+      return isModalOpen()
+        ? getActiveModalCompanyName()
+        : getNormalPageCompanyName();
+    }
+
+    // 메인 페이지 + training 페이지
+    const isMainOrTraining =
       urlObj.hostname === "jasoseol.com" &&
-      (urlObj.pathname === "/" || urlObj.pathname === "")
-    ) {
-      const isModal = document.body.classList.contains("no-scroll");
+      (urlObj.pathname === "/" ||
+        urlObj.pathname === "" ||
+        urlObj.pathname === "/training");
 
-      if (isModal) {
-        // left: 45px 스타일을 가진 활성 모달 찾기
-        // 메인 페이지에서는 모달이 여러개 렌더된 상태로 스타일만 변경되면서 위치 이동.
-        // left: 45px인 모달이 활성 모달.
-        const modals = document.querySelectorAll<HTMLElement>(
-          '.transition-left[class*="recruit-slide"]'
-        );
-
-        for (const modal of modals) {
-          const leftValue = modal.style.left;
-          if (leftValue && leftValue.includes("45px")) {
-            // 활성 모달 내부의 span.ml-3 찾기
-            const el = modal.querySelector<HTMLElement>("span.ml-3");
-            return el?.textContent?.trim() || null;
-          }
-        }
-      }
+    if (isMainOrTraining && isModalOpen()) {
+      return getActiveModalCompanyName();
     }
 
-    // /training 페이지 (메인 페이지와 동일한 모달 구조)
-    if (urlObj.hostname === "jasoseol.com" && urlObj.pathname === "/training") {
-      const isModal = document.body.classList.contains("no-scroll");
-
-      if (isModal) {
-        // left: 45px 스타일을 가진 활성 모달 찾기
-        const modals = document.querySelectorAll<HTMLElement>(
-          '.transition-left[class*="recruit-slide"]'
-        );
-
-        for (const modal of modals) {
-          const leftValue = modal.style.left;
-          if (leftValue && leftValue.includes("45px")) {
-            const el = modal.querySelector<HTMLElement>("span.ml-3");
-            return el?.textContent?.trim() || null;
-          }
-        }
-      }
-    }
-
-    // /companies 페이지
+    // company 페이지
     if (url.includes("/companies")) {
-      const el = document.querySelector<HTMLHeadingElement>("h1.text-gray-900");
-      return el?.textContent?.trim() || null;
+      return (
+        document
+          .querySelector<HTMLHeadingElement>("h1.text-gray-900")
+          ?.textContent?.trim() || null
+      );
     }
 
     return null;
@@ -239,6 +217,7 @@ function extractCompany(site: string, url: string): string | null {
           .replace("careers", "")
           .replace("Careers", "")
           .replace("홈페이지", "")
+          .replace("인재", "")
           .trim() || null
       );
     } else if (
@@ -253,6 +232,7 @@ function extractCompany(site: string, url: string): string | null {
           .replace("careers", "")
           .replace("Careers", "")
           .replace("홈페이지", "")
+          .replace("인재", "")
           .trim() || null
       );
     }
