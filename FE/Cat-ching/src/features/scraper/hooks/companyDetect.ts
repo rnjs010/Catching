@@ -25,6 +25,7 @@ function extractCompany(site: string, url: string): string | null {
       .replace("careers", "")
       .replace("Careers", "")
       .replace("홈페이지", "")
+      .replace("기업정보", "")
       .replace("인재", "")
       .replace("채용", "")
       .replace("정보", "")
@@ -52,14 +53,18 @@ function extractCompany(site: string, url: string): string | null {
     if (url.includes("/zf_user/company-review")) {
       return querySelect("h1.title a");
     } else if (url.includes("/zf_user/company-info")) {
-      return querySelect("h1.tit_company");
+      return removeString(querySelect("h1.tit_company")!);
     } else if (url.includes("/jobs/relay")) {
       return matchTitle();
     }
   }
 
   if (site === "wanted") {
-    return matchTitle();
+    if (url.includes("/company/")) {
+      return querySelect("h1.wds-1f8kxw2");
+    } else {
+      return matchTitle();
+    }
   }
 
   if (site === "jobplanet") {
