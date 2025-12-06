@@ -14,18 +14,24 @@ function getSiteFromUrl(url: string): SiteType {
   return "other";
 }
 
-function extractCompany(site: string, url: string): string | null {
+export function extractCompany(site: string, url: string): string | null {
+  const querySelect = <T extends Element>(selector: string): string | null => {
+    const el = document.querySelector<T>(selector);
+    return el?.textContent?.trim() || null;
+  };
+
   if (site === "jobkorea") {
-    if (
+    const urlObj = new URL(url);
+    if (url.includes("/Recruit/GI_Read")) {
+      return querySelect("h2.Typography_variant_size20__344nw24");
+    } else if (
       url.includes("/Recruit/Co_Read") ||
+      url.includes("/Recruit/Salary") ||
       url.includes("/Company") ||
       url.includes("/company")
     ) {
-      const el = document.querySelector<HTMLElement>(
-        "div.company-header-branding-body div.name"
-      );
-      return el?.textContent?.trim() || null;
-    } else {
+      return querySelect("div.company-header-branding-body div.name");
+    } else if (urlObj.pathname !== "/") {
       const meta = document.querySelector<HTMLMetaElement>(
         'meta[name="writer"]'
       );
@@ -63,7 +69,7 @@ function extractCompany(site: string, url: string): string | null {
 
   if (site === "jasoseol") {
     // /recruit/숫자 페이지
-    if (/\/(recruit|intern)\/\d+/.test(url)) {
+    if (/\/recruit\/\d+/.test(url)) {
       const isModal =
         document.querySelector(".recruit-slide-backdrop") !== null;
 
@@ -77,16 +83,26 @@ function extractCompany(site: string, url: string): string | null {
     }
     const urlObj = new URL(url);
 
-    // 메인 페이지 모달
+    // 메인 페이지 모달, /intern/숫자 페이지
     if (
-      urlObj.hostname === "jasoseol.com" &&
-      (urlObj.pathname === "/" || urlObj.pathname === "")
+      (urlObj.hostname === "jasoseol.com" &&
+        (urlObj.pathname === "/" || urlObj.pathname === "")) ||
+      /\/intern\/\d+/.test(url)
     ) {
       const isModal = document.body.classList.contains("no-scroll");
 
       if (isModal) {
-        const el = document.querySelector<HTMLElement>("span.ml-3");
-        return el?.textContent?.trim() || null;
+        const modals = document.querySelectorAll<HTMLElement>(
+          '.transition-left[class*="recruit-slide"]'
+        );
+
+        for (const modal of modals) {
+          const leftValue = modal.style.left;
+          if (leftValue && leftValue.includes("45px")) {
+            const el = modal.querySelector<HTMLElement>("span.ml-3");
+            return el?.textContent?.trim() || null;
+          }
+        }
       }
     }
 
@@ -144,7 +160,7 @@ function extractCompany(site: string, url: string): string | null {
         "a.title_companyName__dzX3V"
       );
       return el?.textContent?.trim() || null;
-    } else if (url.includes("/jobs")) {
+    } else {
       const el = document.querySelector<HTMLHeadingElement>(
         "a.jobPostModal_jobPostInfoText__zA5OZ"
       );
@@ -215,6 +231,8 @@ export async function detectCompany(): Promise<DetectResult> {
   }
 
   try {
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
     const results = await browser.scripting.executeScript({
       target: { tabId: tab.id },
       func: extractCompany,
@@ -222,46 +240,70 @@ export async function detectCompany(): Promise<DetectResult> {
     });
     const company = results[0]?.result || null;
 
-    // other 사이트에서 '채용' 단어 못 찾으면 null 반환
     if (site === "other" && !company) {
       return { site: null, company: null };
     }
 
     return { site, company };
   } catch (e) {
-    console.error("Script injection failed:", e);
+    console.error("[detectCompany] Script injection failed:", e);
     return { site, company: null };
   }
 }
 
 export function onTabChange(callback: () => void): () => void {
-  const handleActivated = () => {
-    setTimeout(callback, 100);
+  let currentTabId: number | null = null;
+  let currentUrl: string | null = null;
+
+  const handleActivated = async (activeInfo: { tabId: number }) => {
+    currentTabId = activeInfo.tabId;
+    const [tab] = await browser.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+    currentUrl = tab.url || null;
+    setTimeout(callback, 300);
   };
 
-  const handleUpdated = (
+  let pendingUrlChanged = false;
+  const handleUpdated = async (
     tabId: number,
     changeInfo: { status?: string; url?: string }
   ) => {
-    if (changeInfo.status === "complete" || changeInfo.url) {
-      browser.tabs.query(
-        { active: true, currentWindow: true },
-        ([activeTab]) => {
-          if (activeTab?.id === tabId) {
-            setTimeout(callback, 1000);
-          }
-        }
-      );
+    const [activeTab] = await browser.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+
+    if (activeTab?.id !== tabId) return;
+
+    const urlChanged = changeInfo.url && changeInfo.url !== currentUrl;
+    const loadingComplete = changeInfo.status === "complete";
+
+    if (urlChanged) {
+      currentUrl = changeInfo.url || null;
+      pendingUrlChanged = true;
+    }
+
+    if (pendingUrlChanged && loadingComplete) {
+      pendingUrlChanged = false;
+
+      const site = currentUrl ? getSiteFromUrl(currentUrl) : null;
+      const delay = ["jobplanet", "jasoseol"].includes(site ?? "") ? 1000 : 200;
+      setTimeout(callback, delay);
     }
   };
 
+  // 페이지 내부 변화 감지
   const handleMessage = (message: { action: string }) => {
     if (
       message.action === "jasoseolChanged" ||
       message.action === "jobplanetChanged" ||
       message.action === "jobdaChanged"
     ) {
-      callback();
+      setTimeout(() => {
+        callback();
+      }, 300);
     }
   };
 

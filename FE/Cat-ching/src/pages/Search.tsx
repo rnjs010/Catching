@@ -6,6 +6,7 @@ import SplitText from "@/components/SplitText";
 import catQLogo from "@/assets/cat_q.png";
 import catFLogo from "@/assets/cat_f.png";
 import { useCompanyDetector } from "@/features/scraper/hooks/useCompanyDetector";
+import { useShowCompany } from "@/features/scraper/hooks/useShowCompany";
 
 const ContentArea = styled.div`
   ${tw`flex flex-col items-center justify-center flex-1 w-full`}
@@ -25,13 +26,16 @@ const AlertMessage = styled.p`
 `;
 
 export default function Search() {
-  const { company, currentSite } = useCompanyDetector();
+  const { company, currentSite, isLoading } = useCompanyDetector();
+
+  const showCompany = useShowCompany(isLoading, company);
+  const shouldShowAlert = !isLoading && !currentSite;
 
   const ui = {
-    found: !!company,
-    text: company ? "!" : "?",
-    color: company ? "blue70" : "black",
-    image: company ? catFLogo : catQLogo,
+    found: !!showCompany,
+    text: showCompany ? "!" : "?",
+    color: showCompany ? "blue70" : "black",
+    image: showCompany ? catFLogo : catQLogo,
   } as const;
 
   return (
@@ -42,24 +46,25 @@ export default function Search() {
         </Text>
         <CatImage src={ui.image} alt="Cat Logo" isFound={ui.found} />
         <Wrapper>
-          {currentSite ? (
-            <>
-              <Text variant="xl">어떤 회사를 탐색할까요?</Text>
-              {company ? (
-                <SplitText
-                  text={company}
-                  delay={180}
-                  className="text-2xl font-semibold text-[#0058CC] truncate block"
-                />
-              ) : (
-                <GradientText
-                  children="채용 공고 분석 중..."
-                  className="text-2xl font-semibold "
-                />
-              )}
-            </>
-          ) : (
+          {/* 1. 사이트 없음 */}
+          {shouldShowAlert ? (
             <AlertMessage>지원하는 구직사이트에서 사용해주세요</AlertMessage>
+          ) : /* 2. 로딩 중 */
+          isLoading ? (
+            <GradientText className="text-2xl font-semibold">
+              페이지 로딩중...
+            </GradientText>
+          ) : /* 3. 사이트 있음 + 로딩 끝 */
+          !showCompany ? (
+            <GradientText className="text-2xl font-semibold">
+              채용 공고 분석 중...
+            </GradientText>
+          ) : (
+            <SplitText
+              text={company!}
+              delay={180}
+              className="text-2xl font-semibold text-[#0058CC] truncate block"
+            />
           )}
         </Wrapper>
       </ContentArea>
