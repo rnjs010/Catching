@@ -38,8 +38,11 @@ function extractCompany(site: string, url: string): string | null {
   };
 
   if (site === "jobkorea") {
-    if (
+    if (url.includes("/Recruit/GI_Read")) {
+      return querySelect("h2.Typography_variant_size20__344nw24");
+    } else if (
       url.includes("/Recruit/Co_Read") ||
+      url.includes("/Recruit/Salary") ||
       url.includes("/Company") ||
       url.includes("/company")
     ) {
@@ -71,6 +74,9 @@ function extractCompany(site: string, url: string): string | null {
     if (url.includes("/job/search")) {
       return querySelect(".company_name a");
     } else if (url.includes("/companies/")) {
+      if (url.includes("/interviews/") || url.includes("/benefits/")) {
+        return querySelect("h1.companies-company__name");
+      }
       return querySelect("h1.text-h5");
     }
   }
