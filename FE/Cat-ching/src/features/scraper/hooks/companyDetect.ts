@@ -15,17 +15,40 @@ export function getSiteFromUrl(url: string): SiteType {
 }
 
 function extractCompany(site: string, url: string): string | null {
+  const querySelect = <T extends Element>(selector: string): string | null => {
+    const el = document.querySelector<T>(selector);
+    return el?.textContent?.trim() || null;
+  };
+
+  const removeString = (str: string) => {
+    return str
+      .replace("careers", "")
+      .replace("Careers", "")
+      .replace("홈페이지", "")
+      .replace("기업정보", "")
+      .replace("인재", "")
+      .replace("채용", "")
+      .replace("정보", "")
+      .trim();
+  };
+
+  const matchTitle = (): string | null => {
+    const match = document.title.match(/^\[([^\]]+)\]/);
+    return match ? match[1] : null;
+  };
+
   if (site === "jobkorea") {
-    if (
+    const urlObj = new URL(url);
+    if (url.includes("/Recruit/GI_Read")) {
+      return querySelect("h2.Typography_variant_size20__344nw24");
+    } else if (
       url.includes("/Recruit/Co_Read") ||
+      url.includes("/Recruit/Salary") ||
       url.includes("/Company") ||
       url.includes("/company")
     ) {
-      const el = document.querySelector<HTMLElement>(
-        "div.company-header-branding-body div.name"
-      );
-      return el?.textContent?.trim() || null;
-    } else {
+      return querySelect("div.company-header-branding-body div.name");
+    } else if (urlObj.pathname !== "/") {
       const meta = document.querySelector<HTMLMetaElement>(
         'meta[name="writer"]'
       );
@@ -35,78 +58,97 @@ function extractCompany(site: string, url: string): string | null {
 
   if (site === "saramin") {
     if (url.includes("/zf_user/company-review")) {
-      const el = document.querySelector<HTMLElement>("h1.title a");
-      return el?.textContent?.trim() || null;
+      return querySelect("h1.title a");
     } else if (url.includes("/zf_user/company-info")) {
-      const el = document.querySelector<HTMLHeadingElement>("h1.tit_company");
-      return el?.textContent?.trim() || null;
+      return removeString(querySelect("h1.tit_company")!);
     } else if (url.includes("/jobs/relay")) {
-      const match = document.title.match(/^\[([^\]]+)\]/);
-      return match ? match[1] : null;
+      return matchTitle();
+    } else if (url.includes("/write/")) {
+      const el = document.querySelectorAll(
+        "span.MetaInfo_meta-info__item-desc__Z7Z4v"
+      );
+      return el[1].textContent?.trim() || null;
     }
   }
 
   if (site === "wanted") {
-    const match = document.title.match(/^\[([^\]]+)\]/);
-    return match ? match[1] : null;
+    if (url.includes("/company/")) {
+      return querySelect("h1.wds-1f8kxw2");
+    } else {
+      return matchTitle();
+    }
   }
 
   if (site === "jobplanet") {
     if (url.includes("/job/search")) {
-      const el = document.querySelector<HTMLElement>(".company_name a");
-      return el?.textContent?.trim() || null;
+      return querySelect(".company_name a");
     } else if (url.includes("/companies/")) {
-      const el = document.querySelector<HTMLHeadingElement>("h1.text-h5");
-      return el?.textContent?.trim() || null;
+      if (url.includes("/interviews/") || url.includes("/benefits/")) {
+        return querySelect("h1.companies-company__name");
+      }
+      return querySelect("h1.text-h5");
     }
   }
 
   if (site === "jasoseol") {
-    // /recruit/숫자 페이지
-    if (/\/recruit\/\d+/.test(url)) {
-      const isModal =
-        document.querySelector(".recruit-slide-backdrop") !== null;
-
-      if (isModal) {
-        const el = document.querySelector<HTMLElement>(".ec-name-value");
-        return el?.textContent?.trim() || null;
-      } else {
-        const el = document.querySelector<HTMLElement>("span.ml-3");
-        return el?.textContent?.trim() || null;
-      }
-    }
     const urlObj = new URL(url);
 
-    // 메인 페이지 모달
-    if (
-      urlObj.hostname === "jasoseol.com" &&
-      (urlObj.pathname === "/" || urlObj.pathname === "")
-    ) {
-      const isModal = document.body.classList.contains("no-scroll");
+    // 모달 페이지 회사명 찾기
+    const getActiveModalCompanyName = () => {
+      const modals = document.querySelectorAll<HTMLElement>(
+        '.transition-left[class*="recruit-slide"]'
+      );
 
-      if (isModal) {
-        // left: 45px 스타일을 가진 활성 모달 찾기
-        // 메인 페이지에서는 모달이 여러개 렌더된 상태로 스타일만 변경되면서 위치 이동.
-        // left: 45px인 모달이 활성 모달.
-        const modals = document.querySelectorAll<HTMLElement>(
-          '.transition-left[class*="recruit-slide"]'
-        );
-
-        for (const modal of modals) {
-          const leftValue = modal.style.left;
-          if (leftValue && leftValue.includes("45px")) {
-            // 활성 모달 내부의 span.ml-3 찾기
-            const el = modal.querySelector<HTMLElement>("span.ml-3");
-            return el?.textContent?.trim() || null;
-          }
+      for (const modal of modals) {
+        if (modal.style.left?.includes("45px")) {
+          return (
+            modal
+              .querySelector<HTMLElement>("span.ml-3")
+              ?.textContent?.trim() || null
+          );
         }
       }
+      return null;
+    };
+
+    // 모달 여부 확인
+    const isModalOpen = () => document.body.classList.contains("no-scroll");
+
+    // recruit 페이지
+    if (/\/recruit\/\d+/.test(url)) {
+      if (document.querySelector(".recruit-slide-backdrop")) {
+        // recruit 상세 모달
+        return querySelect(".ec-name-value");
+      } else {
+        // 일반 recruit 페이지
+        return querySelect("span.ml-3");
+      }
+    }
+    // intern 페이지
+    else if (/\/intern\/\d+/.test(url)) {
+      return isModalOpen()
+        ? getActiveModalCompanyName()
+        : querySelect("span.ml-3");
     }
 
-    // /companies 페이지
+    // 메인 페이지 + training 페이지
+    const isMainOrTraining =
+      urlObj.hostname === "jasoseol.com" &&
+      (urlObj.pathname === "/" ||
+        urlObj.pathname === "" ||
+        urlObj.pathname === "/training");
+
+    if (isMainOrTraining && isModalOpen()) {
+      return getActiveModalCompanyName();
+    }
+
+    // company 페이지
     if (url.includes("/companies")) {
-      const el = document.querySelector<HTMLHeadingElement>("h1.text-gray-900");
-      return el?.textContent?.trim() || null;
+      return querySelect("h1.text-gray-900");
+    }
+
+    if (url.includes("/resume/")) {
+      return querySelect("a.company-link");
     }
 
     return null;
@@ -114,64 +156,61 @@ function extractCompany(site: string, url: string): string | null {
 
   if (site === "linkareer") {
     if (url.includes("/company-info")) {
-      const el = document.querySelector<HTMLHeadingElement>(
-        "div.company-details h1"
-      );
-      return el?.textContent?.trim() || null;
+      return querySelect("div.company-details h1");
     } else if (url.includes("/activity")) {
-      const el = document.querySelector<HTMLHeadingElement>(
-        "h2.organization-name"
-      );
-      return el?.textContent?.trim() || null;
+      return querySelect("h2.organization-name");
+    } else if (url.includes("/channel/")) {
+      const title = querySelect("h1.company-title");
+      if (!title) {
+        return querySelect("div.news-title");
+      }
+      return title;
     }
   }
 
   if (site === "incruit") {
     if (url.includes("/jobdb_info") || url.includes("/entry/")) {
-      const el = document.querySelector<HTMLElement>("div.top-cnt em a");
-      return el?.textContent?.trim() || null;
+      return querySelect("div.top-cnt em a");
     } else if (url.includes("/company")) {
-      const el = document.querySelector<HTMLElement>("div.name");
-      return el?.textContent?.trim() || null;
+      return querySelect("div.name");
+    } else if (url.includes("/datacenter/data")) {
+      return querySelect("p.cmp-info-header__name a");
+    } else if (url.includes("/coverletter/")) {
+      const full = querySelect("h2.subject-text");
+      if (full) {
+        const title = full.split("20")[0].trim();
+        return title;
+      }
     }
   }
 
   if (site === "catch") {
     if (url.includes("/NCS/RecruitInfoDetails")) {
-      const match = document.title.match(/^\[([^\]]+)\]/);
-      return match ? match[1] : null;
-    } else if (url.includes("/Comp/CompSummary")) {
-      const el = document.querySelector<HTMLHeadingElement>("div.name h2");
-      return el?.textContent?.trim() || null;
+      return matchTitle();
+    } else if (url.includes("/Comp/")) {
+      return querySelect("div.name h1");
+    } else if (url.includes("/JobN/CoverLetter")) {
+      return querySelect("dt.tag-space a.name");
+    } else if (url.includes("/JobN/Pass/")) {
+      return querySelect("div.view p.q");
     }
   }
 
   if (site === "jobda") {
     if (url.includes("/company")) {
-      const el = document.querySelector<HTMLHeadingElement>(
-        "span.companyBannerArea_companyName__oyXyJ"
-      );
-      return el?.textContent?.trim() || null;
+      return querySelect("span.companyBannerArea_companyName__oyXyJ");
     } else if (url.includes("/position")) {
-      const el = document.querySelector<HTMLHeadingElement>(
-        "a.title_companyName__dzX3V"
-      );
-      return el?.textContent?.trim() || null;
+      return querySelect("a.title_companyName__dzX3V");
     } else if (url.includes("/jobs")) {
-      const el = document.querySelector<HTMLHeadingElement>(
-        "a.jobPostModal_jobPostInfoText__zA5OZ"
-      );
-      return el?.textContent?.trim() || null;
+      return querySelect("a.jobPostModal_jobPostInfoText__zA5OZ");
     }
   }
 
   if (site === "rallit") {
     if (url.includes("/companies/")) {
-      const el = document.querySelector<HTMLHeadingElement>("h1.css-55ww01");
-      return el?.textContent?.trim() || null;
+      return querySelect("h1.css-55ww01");
     } else if (url.includes("/positions/")) {
-      const el = document.querySelector<HTMLHeadingElement>("h2.css-1iscm3n");
-      return el?.textContent?.trim() || null;
+      return querySelect("h2.css-1iscm3n");
     }
   }
 
@@ -188,29 +227,13 @@ function extractCompany(site: string, url: string): string | null {
     } else if (url.includes("news") && !bodyText.includes("채용")) {
       return null;
     } else if (url.includes("recruit") || url.includes("careers")) {
-      return (
-        document.title
-          ?.replace("채용", "")
-          .replace("정보", "")
-          .replace("careers", "")
-          .replace("Careers", "")
-          .replace("홈페이지", "")
-          .trim() || null
-      );
+      return removeString(document.title);
     } else if (
       bodyText.includes("채용") ||
       bodyText.includes("careers") ||
       bodyText.includes("Careers")
     ) {
-      return (
-        document.title
-          ?.replace("채용", "")
-          .replace("정보", "")
-          .replace("careers", "")
-          .replace("Careers", "")
-          .replace("홈페이지", "")
-          .trim() || null
-      );
+      return removeString(document.title);
     }
   }
 

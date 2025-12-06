@@ -22,7 +22,14 @@ export default defineContentScript({
         const isModal = backdrop !== null || hasNoScroll;
 
         let currentActiveModalIndex: number | null = null;
-        if (isModal && !window.location.href.includes("/recruit/")) {
+        // 메인, /training, /intern 페이지에서 45px 모달 스와이프 감지
+        // /intern 페이지는 URL 변경 + 45px 모달 스와이프 둘 다 사용
+        if (
+          isModal &&
+          (window.location.pathname === "/" ||
+            window.location.pathname === "/training" ||
+            window.location.pathname.startsWith("/intern/"))
+        ) {
           // left: 45px 스타일을 가진 모달 찾기
           const modals = document.querySelectorAll<HTMLElement>(
             '.transition-left[class*="recruit-slide"]'
