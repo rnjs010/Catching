@@ -74,7 +74,31 @@ function extractCompany(site: string, url: string): string | null {
         const el = document.querySelector<HTMLElement>("span.ml-3");
         return el?.textContent?.trim() || null;
       }
+    } else if (/\/intern\/\d+/.test(url)) {
+      // /intern/숫자 페이지 - 45px 모달에서 회사명 찾기
+      const isModal = document.body.classList.contains("no-scroll");
+
+      if (isModal) {
+        // left: 45px 스타일을 가진 활성 모달 찾기
+        const modals = document.querySelectorAll<HTMLElement>(
+          '.transition-left[class*="recruit-slide"]'
+        );
+
+        for (const modal of modals) {
+          const leftValue = modal.style.left;
+          if (leftValue && leftValue.includes("45px")) {
+            // 활성 모달 내부의 span.ml-3 찾기
+            const el = modal.querySelector<HTMLElement>("span.ml-3");
+            return el?.textContent?.trim() || null;
+          }
+        }
+      } else {
+        // 모달이 아닌 경우 일반 span.ml-3 찾기
+        const el = document.querySelector<HTMLElement>("span.ml-3");
+        return el?.textContent?.trim() || null;
+      }
     }
+
     const urlObj = new URL(url);
 
     // 메인 페이지 모달
@@ -96,6 +120,26 @@ function extractCompany(site: string, url: string): string | null {
           const leftValue = modal.style.left;
           if (leftValue && leftValue.includes("45px")) {
             // 활성 모달 내부의 span.ml-3 찾기
+            const el = modal.querySelector<HTMLElement>("span.ml-3");
+            return el?.textContent?.trim() || null;
+          }
+        }
+      }
+    }
+
+    // /training 페이지 (메인 페이지와 동일한 모달 구조)
+    if (urlObj.hostname === "jasoseol.com" && urlObj.pathname === "/training") {
+      const isModal = document.body.classList.contains("no-scroll");
+
+      if (isModal) {
+        // left: 45px 스타일을 가진 활성 모달 찾기
+        const modals = document.querySelectorAll<HTMLElement>(
+          '.transition-left[class*="recruit-slide"]'
+        );
+
+        for (const modal of modals) {
+          const leftValue = modal.style.left;
+          if (leftValue && leftValue.includes("45px")) {
             const el = modal.querySelector<HTMLElement>("span.ml-3");
             return el?.textContent?.trim() || null;
           }
