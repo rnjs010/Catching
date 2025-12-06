@@ -38,6 +38,7 @@ function extractCompany(site: string, url: string): string | null {
   };
 
   if (site === "jobkorea") {
+    const urlObj = new URL(url);
     if (url.includes("/Recruit/GI_Read")) {
       return querySelect("h2.Typography_variant_size20__344nw24");
     } else if (
@@ -47,8 +48,11 @@ function extractCompany(site: string, url: string): string | null {
       url.includes("/company")
     ) {
       return querySelect("div.company-header-branding-body div.name");
-    } else {
-      return querySelect('meta[name="writer"]');
+    } else if (urlObj.pathname !== "/") {
+      const meta = document.querySelector<HTMLMetaElement>(
+        'meta[name="writer"]'
+      );
+      return meta?.content || null;
     }
   }
 
@@ -59,6 +63,11 @@ function extractCompany(site: string, url: string): string | null {
       return removeString(querySelect("h1.tit_company")!);
     } else if (url.includes("/jobs/relay")) {
       return matchTitle();
+    } else if (url.includes("/write/")) {
+      const el = document.querySelectorAll(
+        "span.MetaInfo_meta-info__item-desc__Z7Z4v"
+      );
+      return el[1].textContent?.trim() || null;
     }
   }
 
@@ -138,6 +147,10 @@ function extractCompany(site: string, url: string): string | null {
       return querySelect("h1.text-gray-900");
     }
 
+    if (url.includes("/resume/")) {
+      return querySelect("a.company-link");
+    }
+
     return null;
   }
 
@@ -146,6 +159,12 @@ function extractCompany(site: string, url: string): string | null {
       return querySelect("div.company-details h1");
     } else if (url.includes("/activity")) {
       return querySelect("h2.organization-name");
+    } else if (url.includes("/channel/")) {
+      const title = querySelect("h1.company-title");
+      if (!title) {
+        return querySelect("div.news-title");
+      }
+      return title;
     }
   }
 
@@ -154,14 +173,26 @@ function extractCompany(site: string, url: string): string | null {
       return querySelect("div.top-cnt em a");
     } else if (url.includes("/company")) {
       return querySelect("div.name");
+    } else if (url.includes("/datacenter/data")) {
+      return querySelect("p.cmp-info-header__name a");
+    } else if (url.includes("/coverletter/")) {
+      const full = querySelect("h2.subject-text");
+      if (full) {
+        const title = full.split("20")[0].trim();
+        return title;
+      }
     }
   }
 
   if (site === "catch") {
     if (url.includes("/NCS/RecruitInfoDetails")) {
       return matchTitle();
-    } else if (url.includes("/Comp/CompSummary")) {
-      return querySelect("div.name h2");
+    } else if (url.includes("/Comp/")) {
+      return querySelect("div.name h1");
+    } else if (url.includes("/JobN/CoverLetter")) {
+      return querySelect("dt.tag-space a.name");
+    } else if (url.includes("/JobN/Pass/")) {
+      return querySelect("div.view p.q");
     }
   }
 
