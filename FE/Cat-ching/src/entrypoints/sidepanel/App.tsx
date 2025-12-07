@@ -4,6 +4,7 @@ import tw from "twin.macro";
 import { GlobalFonts } from "@/styles/fonts";
 import Home from "@/pages/Home";
 import Search from "@/pages/Search";
+import Register from "@/pages/Register";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useAuthStore } from "@/stores/authStore";
@@ -18,7 +19,7 @@ const ContentWrapper = styled.div`
 `;
 
 function App() {
-  const { isAuthenticated, checkAuth } = useAuthStore();
+  const { isAuthenticated, isNewUser, checkAuth } = useAuthStore();
 
   // 앱 로드 시 인증 상태 확인
   useEffect(() => {
@@ -31,8 +32,8 @@ function App() {
 
       <ContentWrapper>
         <Header />
-        {/* 인증 상태에 따라 Home 또는 Search 페이지 표시 */}
-        {isAuthenticated ? <Search /> : <Home />}
+        {/* 라우팅: 미인증 → Home, 인증+회원가입 → Register, 인증+로그인 → Search */}
+        {!isAuthenticated ? <Home /> : isNewUser ? <Register /> : <Search />}
         <Footer />
       </ContentWrapper>
     </Container>

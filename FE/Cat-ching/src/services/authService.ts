@@ -4,12 +4,22 @@ import api from "./apiService";
 // browser.identity.getAuthToken()으로 받은 Google OAuth Token을 백엔드로 전송
 export const loginWithGoogle = async (
   googleToken: string
-): Promise<{ accessToken: string; refreshToken: string }> => {
+): Promise<{
+  accessToken: string;
+  refreshToken: string;
+  isNewUser: boolean;
+}> => {
   const response = await api.post("/auth/login", {
     token: googleToken,
   });
 
-  return response.data;
+  // 201: 회원가입, 200: 로그인
+  const isNewUser = response.status === 201;
+
+  return {
+    ...response.data,
+    isNewUser,
+  };
 };
 
 // 토큰 리프레시
@@ -32,5 +42,11 @@ export const logout = async (): Promise<void> => {
 // 현재 사용자 정보 가져오기
 export const getCurrentUser = async () => {
   const response = await api.get("/auth/me");
+  return response.data;
+};
+
+// 사용자 정보 업데이트
+export const updateUserInfo = async (name: string) => {
+  const response = await api.put("/auth/me", { name });
   return response.data;
 };

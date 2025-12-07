@@ -1,10 +1,12 @@
 import { create } from "zustand";
 import { AuthState } from "@/types/store";
-import { loginWithGoogle } from "@/services/authService";
+import { loginWithGoogle, getCurrentUser } from "@/services/authService";
+import { useUserStore } from "./userStore";
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   isAuthenticated: false,
   isLoading: false,
+  isNewUser: false,
 
   // Google OAuth 로그인
   login: async () => {
@@ -29,7 +31,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       console.log("Google Token 받음:", googleToken);
 
       // 백엔드로 Google Token 전송
-      const { accessToken, refreshToken } = await loginWithGoogle(googleToken);
+      const { accessToken, refreshToken, isNewUser } = await loginWithGoogle(
+        googleToken
+      );
 
       // JWT 토큰 저장
       await browser.storage.local.set({
@@ -37,7 +41,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         refreshToken,
       });
 
-      set({ isAuthenticated: true, isLoading: false });
+      // 사용자 정보 가져오기
+      const userInfo = await getCurrentUser();
+      useUserStore.getState().setUser(userInfo);
+
+      if (isNewUser) {
+        console.log("회원가입 완료:", userInfo);
+      } else {
+        console.log("로그인 완료:", userInfo);
+      }
+
+      set({ isAuthenticated: true, isLoading: false, isNewUser });
       return true;
     } catch (error) {
       console.error("로그인 실패:", error);
@@ -71,7 +85,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
 
       await browser.storage.local.remove(["accessToken", "refreshToken"]);
-      set({ isAuthenticated: false });
+
+      // 사용자 정보 제거
+      useUserStore.getState().clearUser();
+
+      set({ isAuthenticated: false, isNewUser: false });
     } catch (error) {
       console.error("로그아웃 실패:", error);
     }

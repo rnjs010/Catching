@@ -1,7 +1,7 @@
 import { showCropOverlay } from "@/features/OCR/hooks/cropOverlay";
 
 export default defineContentScript({
-  matches: ["<all_urls>"],
+  matches: ["https://*/*"],
   main() {
     console.log("extension loaded");
     // 자소설닷컴 감지

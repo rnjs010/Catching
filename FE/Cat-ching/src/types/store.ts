@@ -8,13 +8,13 @@ export interface User {
   id: string;
   email: string;
   name: string;
-  picture?: string;
 }
 
 // 인증 스토어 타입
 export interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
+  isNewUser: boolean;
   login: () => Promise<boolean>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
