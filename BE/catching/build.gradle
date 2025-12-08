@@ -19,7 +19,39 @@ repositories {
 }
 
 dependencies {
-	implementation 'org.springframework.boot:spring-boot-starter'
+	// 웹 서버 기능 (Controller, JSON 응답 등)
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+
+	// JPA (엔티티, 리포지토리)
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+
+	// 스프링 시큐리티 (SecurityConfig, 필터)
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+
+	// Redis (Refresh Token 저장용)
+	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
+	// validation (@Valid 등)
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+	// OAuth2 클라이언트 (구글 로그인 실제 연동 시 사용할 수도 있음)
+	implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
+
+	// Lombok (Getter, Builder 등)
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+	testCompileOnly 'org.projectlombok:lombok'
+	testAnnotationProcessor 'org.projectlombok:lombok'
+
+	// JWT
+	implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+
+	// PostgreSQL
+	runtimeOnly 'org.postgresql:postgresql'
+
+	// 테스트
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
