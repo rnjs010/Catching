@@ -8,6 +8,7 @@ import Register from "@/pages/Register";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useAuthStore } from "@/stores/authStore";
+import { useAppStore } from "@/stores/appStore";
 import { useEffect } from "react";
 
 const Container = styled.div`
@@ -20,11 +21,23 @@ const ContentWrapper = styled.div`
 
 function App() {
   const { isAuthenticated, isNewUser, checkAuth } = useAuthStore();
+  const { currentPage, navigate } = useAppStore();
 
   // 앱 로드 시 인증 상태 확인
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
+
+  // 인증 상태에 따른 초기 페이지 설정
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate("home");
+    } else if (isNewUser) {
+      navigate("register");
+    } else if (currentPage === "home" || currentPage === "register") {
+      navigate("search");
+    }
+  }, [isAuthenticated, isNewUser, currentPage, navigate]);
 
   return (
     <Container>
@@ -32,8 +45,12 @@ function App() {
 
       <ContentWrapper>
         <Header />
-        {/* 라우팅: 미인증 → Home, 인증+회원가입 → Register, 인증+로그인 → Search */}
-        {!isAuthenticated ? <Home /> : isNewUser ? <Register /> : <Search />}
+
+        {/* 상태 기반 라우팅 */}
+        {currentPage === "home" && <Home />}
+        {currentPage === "register" && <Register />}
+        {currentPage === "search" && <Search />}
+
         <Footer />
       </ContentWrapper>
     </Container>

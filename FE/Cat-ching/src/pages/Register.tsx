@@ -4,7 +4,7 @@ import tw from "twin.macro";
 import { Text } from "@/styles/typography";
 import Stepper, { Step } from "@/components/Stepper";
 import { useUserStore } from "@/stores/userStore";
-import { useAuthStore } from "@/stores/authStore";
+import { useAppStore } from "@/stores/appStore";
 import { updateUserInfo } from "@/services/authService";
 import { motion } from "motion/react";
 
@@ -25,6 +25,7 @@ const InputField = styled.input`
 export default function Register() {
   const user = useUserStore((state) => state.user);
   const setUser = useUserStore((state) => state.setUser);
+  const navigate = useAppStore((state) => state.navigate);
   const [name, setName] = useState(user?.name || "");
   const [isCompleting, setIsCompleting] = useState(false);
 
@@ -41,8 +42,8 @@ export default function Register() {
       // 1초 대기
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      // isNewUser를 false로 변경하여 Search 페이지로 이동
-      useAuthStore.setState({ isNewUser: false });
+      // Search 페이지로 이동
+      navigate("search");
     } catch (error) {
       console.error("사용자 정보 업데이트 실패:", error);
       setIsCompleting(false);

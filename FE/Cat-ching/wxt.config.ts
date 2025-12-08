@@ -32,10 +32,10 @@ export default defineConfig({
         96: "icon/icon96.png",
         128: "icon/icon128.png",
       },
-      default_title: "Cat-ching",
+      default_title: "Cat-ching: AI 기업 분석 & 직무 산업 동향 리서치",
     },
     name: "Cat-ching",
-    description: "AI 기반 취업 준비 지원 서비스",
+    description: "AI 기업 분석 & 직무 산업 동향 리서치",
     version: "0.0.1",
     host_permissions: ["https://*/*"],
     oauth2: {

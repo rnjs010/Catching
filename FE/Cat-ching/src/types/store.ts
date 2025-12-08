@@ -1,6 +1,11 @@
+// 페이지 타입
+export type Page = "home" | "register" | "search";
+
 export interface AppState {
-  isLoading: boolean;
-  setLoading: (loading: boolean) => void;
+  currentPage: Page;
+  prevPage: Page | null;
+  navigate: (page: Page) => void;
+  goBack: () => void;
 }
 
 // 사용자 정보 타입

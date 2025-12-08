@@ -1,5 +1,6 @@
 import axios from "axios";
 import { refreshAccessToken } from "./authService";
+import { useAuthStore } from "@/stores/authStore";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
@@ -48,8 +49,11 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         // 토큰 갱신 실패 시 로그아웃 처리
-        await browser.storage.local.remove(["accessToken", "refreshToken"]);
-        console.error("토큰 갱신 실패:", refreshError);
+        console.error("세션 만료:", refreshError);
+
+        // authStore의 logout 호출 (Chrome Identity 토큰 제거 + 스토어 초기화)
+        await useAuthStore.getState().logout();
+
         return Promise.reject(refreshError);
       }
     }
