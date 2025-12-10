@@ -4,24 +4,26 @@ import com.dongledungle.catching.analysis.dto.AnalysisRequestDto;
 import com.dongledungle.catching.analysis.dto.AnalysisResponseDto;
 import com.dongledungle.catching.analysis.service.AnalysisService;
 import com.dongledungle.catching.analysis.service.GeminiService;
-import com.dongledungle.catching.analysis.service.NotionService;
 import com.dongledungle.catching.common.response.ApiResponse;
 import com.dongledungle.catching.common.util.JsonParserUtil;
 import com.google.genai.ResponseStream;
+import com.google.genai.types.Candidate;
 import com.google.genai.types.GenerateContentResponse;
+import com.google.genai.types.Part;
+import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
 @Slf4j
 @RestController
@@ -30,260 +32,359 @@ import java.io.IOException;
 public class AnalysisController {
 
     private final GeminiService geminiService;
-    private final NotionService notionService;
     private final AnalysisService analysisService;
+    private final Gson gson = new Gson();
 
-    private static final int MAX_AUTO_RETRIES = 2; // 서버에서 자동 재시도(2회)
+    private static final int MAX_AUTO_RETRIES = 2;
     private static final long RETRY_DELAY_MS = 1000;
 
-    @PostMapping(value = "/analysis", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter analyze(@RequestBody AnalysisRequestDto request) {
-        SseEmitter emitter = new SseEmitter(600000L); 
-        
-        StringBuilder finalJsonResponse = new StringBuilder();
+    @PostMapping(value = "/analysis/json", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter analyzeJson(@RequestBody AnalysisRequestDto request) {
+        SseEmitter emitter = new SseEmitter(600000L);
+        CompletableFuture.runAsync(() -> processAnalysisWithSSE(request, emitter, true));
+        return emitter;
+    }
 
-        try {
-            ResponseStream<GenerateContentResponse> responseStream = 
-                    geminiService.analyzeCompany(
-                        request.getToday(),
-                        request.getCompany(),
-                        request.getPosition(),
-                        request.getAnalysisDepth()
-                    );
-
-            for (GenerateContentResponse response : responseStream) {
-                try {
-                    String textChunk = response.candidates().get().get(0).content().get().parts().get().get(0).text().get();
-                    
-                    finalJsonResponse.append(textChunk); 
-                    
-                    emitter.send(SseEmitter.event().name("data").data(textChunk));
-                    emitter.send(SseEmitter.event().comment("flush"));
-                } catch (IOException e) {
-                    System.err.println("SSE Client Write Error: " + e.getMessage());
-                    emitter.completeWithError(e);
-                    return emitter;
-                }
-            }
-
-            String rawJson = finalJsonResponse.toString();
-            // String finalJson = finalJsonResponse.toString();
-            int startIndex = rawJson.indexOf('{');
-            int endIndex = rawJson.lastIndexOf('}');
-
-            String finalJson = "";
-
-            if (startIndex != -1 && endIndex != -1 && endIndex > startIndex) {
-                finalJson = rawJson.substring(startIndex, endIndex + 1); 
-            } else {
-                System.err.println("JSON Parsing Error: Cannot find valid JSON object boundary in stream output.");
-                emitter.completeWithError(new RuntimeException("AI analysis failed to return valid JSON object."));
-                return emitter;
-            }
-
-//            String pageId = notionService.createPageFromAnalysis(finalJson);
-//
-//            emitter.send(SseEmitter.event()
-//                    .name("notionComplete")
-//                    .data(pageId)
-//                    .reconnectTime(1000L)
-//            );
-//
-//            emitter.complete();
-
-        } catch (Exception e) {
-            System.err.println("Analysis/Notion Streaming Error: " + e.getMessage());
-            emitter.completeWithError(e);
-        }
-
+    @PostMapping(value = "/analysis/text", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter analyzeText(@RequestBody AnalysisRequestDto request) {
+        SseEmitter emitter = new SseEmitter(600000L);
+        CompletableFuture.runAsync(() -> processAnalysisWithSSE(request, emitter, false));
         return emitter;
     }
 
     @PostMapping("/analysis/raw")
-    public ResponseEntity<ApiResponse<AnalysisResponseDto>> analyzeRaw(@RequestBody AnalysisRequestDto request){
-        log.info("분석 요청: 회사={}, 직무={}, 사용자={}",
-                request.getCompany(), request.getPosition(), request.getUserId());
+    public ResponseEntity<ApiResponse<AnalysisResponseDto>> analyzeRaw(@RequestBody AnalysisRequestDto request) {
+        log.info("분석 요청: 회사={}, 직무={}, 사용자={}", request.getCompany(), request.getPosition(), request.getUserId());
 
-        try{
-            log.debug("1단계: Redis 캐시 확인");
-            String redisCache = analysisService.getFromRedisCache(
-                    request.getCompany(),
-                    request.getPosition()
-            );
-
-            // redis 캐시 히트
-            if(redisCache != null){
-                log.info("Redis 캐시 히트");
-                var analysis = analysisService.findAnalysisInCurrentWeek(
-                        request.getCompany(),
-                        request.getPosition()
-                );
-
-                if(analysis.isPresent()){
-                    analysisService.saveHistory(request.getUserId(), analysis.get().getCompanyPositionId());
-                }
-
-                return ResponseEntity.ok(
-                        ApiResponse.success(
-                        "Redis Hit",
-                            AnalysisResponseDto.success(request.getCompany(), request.getPosition(), redisCache, "redis")
-                        )
-                );
+        try {
+            // 1. Redis 캐시 확인
+            String cachedResult = checkCache(request);
+            if (cachedResult != null) {
+                return ResponseEntity.ok(ApiResponse.success("Redis Hit",
+                        AnalysisResponseDto.success(request.getCompany(), request.getPosition(), cachedResult, "redis")));
             }
 
-            // db에서 해당 주차 데이터 조회
-            log.debug("2단계: db 확인");
-
-            var weekAnalysis = analysisService.findAnalysisInCurrentWeek(
-                    request.getCompany(),
-                    request.getPosition()
-            );
-
-            if (weekAnalysis.isPresent()) {
-                log.info("db 조회 완료");
-                var entity = weekAnalysis.get();
-                String content = entity.getContent();
-                long analysisId = entity.getCompanyPositionId();
-
-                // History 저장
-                analysisService.saveHistory(request.getUserId(), analysisId);
-
-                // Redis에 저장 (다음번 조회 최적화)
-                analysisService.saveToRedisCache(
-                        request.getCompany(),
-                        request.getPosition(),
-                        content
-                );
-
-                return ResponseEntity.ok(
-                        ApiResponse.success(
-                            AnalysisResponseDto.success(request.getCompany(),
-                                    request.getPosition(),
-                                    content, "database"
-                            )
-                        )
-                );
+            // 2. DB 확인
+            var dbResult = checkDatabase(request);
+            if (dbResult != null) {
+                return ResponseEntity.ok(ApiResponse.success(
+                        AnalysisResponseDto.success(request.getCompany(), request.getPosition(), dbResult, "database")));
             }
 
-            // ai api 호출
-            log.debug("3단계: AI API 호출");
-            int attemptCount = 0;
-            Exception lastException = null;
-
-            // 재시도
-            while (attemptCount < MAX_AUTO_RETRIES) {
-                attemptCount++;
-
-                try {
-                    if (attemptCount > 1) {
-                        log.info("재시도 중... ({}/{})", attemptCount, MAX_AUTO_RETRIES);
-                        Thread.sleep(RETRY_DELAY_MS);
-                    }
-
-                    // AI API 호출
-                    ResponseStream<GenerateContentResponse> responseStream =
-                            geminiService.analyzeCompany(
-                                    request.getToday(),
-                                    request.getCompany(),
-                                    request.getPosition(),
-                                    request.getAnalysisDepth()
-                            );
-
-                    // 응답 수집
-                    StringBuilder rawResponse = new StringBuilder();
-                    for (GenerateContentResponse response : responseStream) {
-                        String textChunk = response.candidates().get().get(0)
-                                .content().get().parts().get().get(0).text().get();
-                        rawResponse.append(textChunk);
-                    }
-
-                    // JSON 파싱 및 검증
-                    String rawJson = rawResponse.toString();
-                    String finalJson = JsonParserUtil.extractJson(rawJson);
-
-                    JsonObject json = JsonParserUtil.parseToJsonObject(finalJson);
-                    if (!JsonParserUtil.isValidCompanyAnalysis(json)) {
-                        throw new IllegalArgumentException("Invalid analysis structure");
-                    }
-
-                    // DB 저장 (Analysis)
-                    long analysisId = analysisService.saveAnalysisToDatabase(
-                            request.getCompany(),
-                            request.getPosition(),
-                            finalJson
-                    );
-
-                    // History 저장
-                    analysisService.saveHistory(request.getUserId(), analysisId);
-
-                    // Redis에 저장
-                    analysisService.saveToRedisCache(
-                            request.getCompany(),
-                            request.getPosition(),
-                            finalJson
-                    );
-
-                    return ResponseEntity.ok(
-                            ApiResponse.success(
-                                    "AI 분석이 완료되었습니다",
-                                    AnalysisResponseDto.success(
-                                                    request.getCompany(),
-                                                    request.getPosition(),
-                                                    finalJson,
-                                                    "ai"
-                                    )
-                            )
-                    );
-
-                } catch (Exception e) {
-                    lastException = e;
-                    log.error("AI 분석 실패 (시도 {}/{}): {}",
-                            attemptCount, MAX_AUTO_RETRIES, e.getMessage());
-
-                    if (attemptCount >= MAX_AUTO_RETRIES) {
-                        break;
-                    }
-                }
-            }
-
-            log.error("AI 분석 최종 실패 ({}회 시도)", attemptCount);
-            String errorType = determineErrorType(lastException);
-            String errorMessage = getUserFriendlyMessage(errorType);
-
-            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .body(
-                            ApiResponse.error(
-                                    HttpStatus.SERVICE_UNAVAILABLE.value(),
-                                    errorMessage,
-                                    AnalysisResponseDto.failure(
-                                            request.getCompany(),
-                                            request.getPosition(),
-                                            errorType,
-                                            errorMessage
-                                    )
-                            )
-                    );
+            // 3. AI API 호출
+            String aiResult = callAIWithRetry(request);
+            return ResponseEntity.ok(ApiResponse.success("AI 분석이 완료되었습니다",
+                    AnalysisResponseDto.success(request.getCompany(), request.getPosition(), aiResult, "ai")));
 
         } catch (Exception e) {
-            log.error("예상치 못한 오류 발생", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(
-                            ApiResponse.error(
-                                    HttpStatus.INTERNAL_SERVER_ERROR,
-                                    "서버 내부 오류가 발생했습니다"
-                            )
-                    );
+            log.error("분석 실패", e);
+            String errorType = determineErrorType(e);
+            String errorMessage = getUserFriendlyMessage(errorType);
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(ApiResponse.error(HttpStatus.SERVICE_UNAVAILABLE.value(), errorMessage,
+                            AnalysisResponseDto.failure(request.getCompany(), request.getPosition(), errorType, errorMessage)));
         }
     }
 
+    // ============ SSE 처리 ============
+
+    private void processAnalysisWithSSE(AnalysisRequestDto request, SseEmitter emitter, boolean isJsonMode) {
+        try {
+            // 1. Redis 캐시 확인
+            sendSseEvent(emitter, "status", "캐시 확인 중...");
+            String cachedResult = checkCache(request);
+            if (cachedResult != null) {
+                sendCachedResult(emitter, request, cachedResult, "redis");
+                return;
+            }
+
+            // 2. DB 확인
+            sendSseEvent(emitter, "status", "기존 분석 결과 확인 중...");
+            String dbResult = checkDatabase(request);
+            if (dbResult != null) {
+                sendCachedResult(emitter, request, dbResult, "database");
+                return;
+            }
+
+            // 3. AI API 호출
+            sendSseEvent(emitter, "status", "AI가 분석 중입니다...");
+            if (isJsonMode) {
+                streamAIAnalysisJson(request, emitter);
+            } else {
+                streamAIAnalysisText(request, emitter);
+            }
+
+        } catch (Exception e) {
+            log.error("SSE 처리 중 예외 발생", e);
+            handleSseError(emitter, e);
+        }
+    }
+
+    private void sendCachedResult(SseEmitter emitter, AnalysisRequestDto request, String content, String source) {
+        log.info("{} 조회 완료", source);
+        sendSseEvent(emitter, "status", source.equals("redis") ? "캐시된 분석 결과를 불러왔습니다" : "저장된 분석 결과를 불러왔습니다");
+        sendSseEvent(emitter, "data", content);
+        sendSseEvent(emitter, "source", source);
+
+        analysisService.findAnalysisInCurrentWeek(request.getCompany(), request.getPosition())
+                .ifPresent(entity -> analysisService.saveHistory(request.getUserId(), entity.getCompanyPositionId()));
+
+        if (source.equals("database")) {
+            analysisService.saveToRedisCache(request.getCompany(), request.getPosition(), content);
+        }
+
+        sendSseEvent(emitter, "complete", "success");
+        emitter.complete();
+    }
+
+    // ============ AI 스트리밍 (JSON) ============
+
+    private void streamAIAnalysisJson(AnalysisRequestDto request, SseEmitter emitter) {
+        retryWithLimit(() -> {
+            ResponseStream<GenerateContentResponse> responseStream = geminiService.analyzeCompany(
+                    request.getToday(), request.getCompany(), request.getPosition(), request.getAnalysisDepth());
+
+            String fullResponse = collectStreamResponse(responseStream);
+            String finalJson = JsonParserUtil.extractJson(fullResponse);
+            JsonObject json = JsonParserUtil.parseToJsonObject(finalJson);
+
+            if (!JsonParserUtil.isValidCompanyAnalysis(json)) {
+                throw new IllegalArgumentException("Invalid analysis structure");
+            }
+
+            saveAnalysisResult(request, finalJson);
+            sendSseEvent(emitter, "data", finalJson);
+            sendSseEvent(emitter, "source", "ai");
+            sendSseEvent(emitter, "status", "분석이 완료되었습니다!");
+            sendSseEvent(emitter, "complete", "success");
+            emitter.complete();
+
+        }, emitter);
+    }
+
+    // ============ AI 스트리밍 (Text - 병렬 처리) ============
+    private void streamAIAnalysisText(AnalysisRequestDto request, SseEmitter emitter) {
+        try {
+            // 각 프롬프트를 독립적으로 재시도 가능하게 병렬 실행
+            CompletableFuture<String> future1 = CompletableFuture.supplyAsync(() ->
+                    retryIndividualPrompt("company-summary", emitter, () ->
+                            geminiService.analyzeCompanyText1(request.getToday(), request.getCompany(), request.getAnalysisDepth())));
+
+            CompletableFuture<String> future2 = CompletableFuture.supplyAsync(() ->
+                    retryIndividualPrompt("company-issue", emitter, () ->
+                            geminiService.analyzeCompanyText2(request.getToday(), request.getCompany(), request.getAnalysisDepth())));
+
+            CompletableFuture<String> future3 = CompletableFuture.supplyAsync(() ->
+                    retryIndividualPrompt("position-main-business", emitter, () ->
+                            geminiService.analyzeCompanyText3(request.getToday(), request.getCompany(), request.getPosition(), request.getAnalysisDepth())));
+
+            CompletableFuture<String> future4 = CompletableFuture.supplyAsync(() ->
+                    retryIndividualPrompt("position-issue", emitter, () ->
+                            geminiService.analyzeCompanyText4(request.getToday(), request.getCompany(), request.getPosition(), request.getAnalysisDepth())));
+
+            // 모든 응답 대기
+            CompletableFuture<Void> allFutures = CompletableFuture.allOf(future1, future2, future3, future4);
+
+            // 타임아웃 또는 실패 처리
+            allFutures.join();
+
+            // 결과 수집 (실패한 프롬프트는 빈 문자열)
+            String fullResponse = String.join("",
+                    future1.join(), future2.join(), future3.join(), future4.join());
+
+            // 모든 프롬프트가 실패한 경우
+            if (fullResponse.isEmpty()) {
+                throw new RuntimeException("모든 프롬프트 호출이 실패했습니다");
+            }
+
+            saveAnalysisResult(request, fullResponse);
+            sendSseEvent(emitter, "data", fullResponse);
+            sendSseEvent(emitter, "source", "ai");
+            sendSseEvent(emitter, "status", "분석이 완료되었습니다!");
+            sendSseEvent(emitter, "complete", "success");
+            emitter.complete();
+
+        } catch (Exception e) {
+            log.error("AI 분석 최종 실패", e);
+            String errorType = determineErrorType(e);
+            String errorMessage = getUserFriendlyMessage(errorType);
+            sendSseEvent(emitter, "error", gson.toJson(new ErrorResponse(errorType, errorMessage)));
+            emitter.completeWithError(e);
+        }
+    }
+
+    /**
+     * 개별 프롬프트 재시도 로직 (독립적으로 최대 MAX_AUTO_RETRIES번 시도)
+     */
+    private String retryIndividualPrompt(String promptName, SseEmitter emitter,
+                                         Supplier<ResponseStream<GenerateContentResponse>> streamSupplier) {
+        for (int attempt = 1; attempt <= MAX_AUTO_RETRIES; attempt++) {
+            try {
+                if (attempt > 1) {
+                    log.info("[{}] 재시도 중... ({}/{})", promptName, attempt, MAX_AUTO_RETRIES);
+                    sendSseEvent(emitter, "retry",
+                            gson.toJson(new RetryInfo(promptName, attempt, MAX_AUTO_RETRIES)));
+                    Thread.sleep(RETRY_DELAY_MS);
+                }
+
+                log.debug("[{}] API 호출 시작", promptName);
+                String response = collectStreamResponse(streamSupplier.get());
+                log.info("[{}] 성공", promptName);
+
+                // 성공하면 바로 SSE 전송
+                sendSseEvent(emitter, promptName, response);
+                return response;
+
+            } catch (Exception e) {
+                log.error("[{}] 실패 (시도 {}/{}): {}", promptName, attempt, MAX_AUTO_RETRIES, e.getMessage());
+
+                if (attempt >= MAX_AUTO_RETRIES) {
+                    // 최종 실패 - 에러 이벤트 전송하지만 전체 프로세스는 계속 진행
+                    log.error("[{}] 최종 실패", promptName);
+                    sendSseEvent(emitter, "partial-error",
+                            gson.toJson(new PartialErrorResponse(promptName, "해당 항목 분석에 실패했습니다")));
+                    return ""; // 빈 문자열 반환으로 부분 실패 허용
+                }
+            }
+        }
+
+        return ""; // 모든 재시도 실패 시 빈 문자열
+    }
+
+    // ============ 공통 유틸리티 메서드 ============
+
+    private String checkCache(AnalysisRequestDto request) {
+        log.debug("Redis 캐시 확인");
+        String cache = analysisService.getFromRedisCache(request.getCompany(), request.getPosition());
+        if (cache != null) {
+            analysisService.findAnalysisInCurrentWeek(request.getCompany(), request.getPosition())
+                    .ifPresent(entity -> analysisService.saveHistory(request.getUserId(), entity.getCompanyPositionId()));
+        }
+        return cache;
+    }
+
+    private String checkDatabase(AnalysisRequestDto request) {
+        log.debug("DB 확인");
+        return analysisService.findAnalysisInCurrentWeek(request.getCompany(), request.getPosition())
+                .map(entity -> {
+                    analysisService.saveHistory(request.getUserId(), entity.getCompanyPositionId());
+                    analysisService.saveToRedisCache(request.getCompany(), request.getPosition(), entity.getContent());
+                    return entity.getContent();
+                }).orElse(null);
+    }
+
+    private String callAIWithRetry(AnalysisRequestDto request) throws Exception {
+        log.debug("AI API 호출");
+        Exception lastException = null;
+
+        for (int attempt = 1; attempt <= MAX_AUTO_RETRIES; attempt++) {
+            try {
+                if (attempt > 1) {
+                    log.info("재시도 중... ({}/{})", attempt, MAX_AUTO_RETRIES);
+                    Thread.sleep(RETRY_DELAY_MS);
+                }
+
+                ResponseStream<GenerateContentResponse> responseStream = geminiService.analyzeCompany(
+                        request.getToday(), request.getCompany(), request.getPosition(), request.getAnalysisDepth());
+
+                String rawJson = collectStreamResponse(responseStream);
+                String finalJson = JsonParserUtil.extractJson(rawJson);
+                JsonObject json = JsonParserUtil.parseToJsonObject(finalJson);
+
+                if (!JsonParserUtil.isValidCompanyAnalysis(json)) {
+                    throw new IllegalArgumentException("Invalid analysis structure");
+                }
+
+                saveAnalysisResult(request, finalJson);
+                return finalJson;
+
+            } catch (Exception e) {
+                lastException = e;
+                log.error("AI 분석 실패 (시도 {}/{}): {}", attempt, MAX_AUTO_RETRIES, e.getMessage());
+            }
+        }
+
+        throw lastException != null ? lastException : new RuntimeException("AI 분석 실패");
+    }
+
+    private void retryWithLimit(Runnable task, SseEmitter emitter) {
+        for (int attempt = 1; attempt <= MAX_AUTO_RETRIES; attempt++) {
+            try {
+                if (attempt > 1) {
+                    log.info("재시도 중... ({}/{})", attempt, MAX_AUTO_RETRIES);
+                    sendSseEvent(emitter, "retry",
+                            String.format("{\"attempt\": %d, \"max\": %d}", attempt, MAX_AUTO_RETRIES));
+                    Thread.sleep(RETRY_DELAY_MS);
+                }
+
+                task.run();
+                return;
+
+            } catch (Exception e) {
+                log.error("AI 분석 실패 (시도 {}/{}): {}", attempt, MAX_AUTO_RETRIES, e.getMessage());
+
+                if (attempt >= MAX_AUTO_RETRIES) {
+                    String errorType = determineErrorType(e);
+                    String errorMessage = getUserFriendlyMessage(errorType);
+                    sendSseEvent(emitter, "error", gson.toJson(new ErrorResponse(errorType, errorMessage)));
+                    emitter.completeWithError(e);
+                    return;
+                }
+            }
+        }
+    }
+
+    private String collectStreamResponse(ResponseStream<GenerateContentResponse> responseStream) {
+        StringBuilder fullResponse = new StringBuilder();
+        for (GenerateContentResponse response : responseStream) {
+            if (!response.candidates().isPresent()) continue;
+
+            for (Candidate candidate : response.candidates().get()) {
+                if (!candidate.content().isPresent()) continue;
+
+                for (Part part : candidate.content().get().parts().orElse(List.of())) {
+                    part.text().ifPresent(fullResponse::append);
+                }
+            }
+        }
+        return fullResponse.toString();
+    }
+
+    private void saveAnalysisResult(AnalysisRequestDto request, String content) {
+        long analysisId = analysisService.saveAnalysisToDatabase(
+                request.getCompany(), request.getPosition(), content);
+        analysisService.saveHistory(request.getUserId(), analysisId);
+        analysisService.saveToRedisCache(request.getCompany(), request.getPosition(), content);
+    }
+
+    private void sendSseEvent(SseEmitter emitter, String eventName, String data) {
+        try {
+            emitter.send(SseEmitter.event().name(eventName).data(data));
+        } catch (IOException e) {
+            log.error("SSE 이벤트 전송 실패: {}", e.getMessage());
+            throw new RuntimeException("SSE 전송 실패", e);
+        }
+    }
+
+    private void handleSseError(SseEmitter emitter, Exception e) {
+        try {
+            String errorMessage = "분석 중 오류가 발생했습니다: " + e.getMessage();
+            sendSseEvent(emitter, "error", gson.toJson(new ErrorResponse("SYSTEM_ERROR", errorMessage)));
+            emitter.completeWithError(e);
+        } catch (Exception ex) {
+            log.error("에러 처리 중 추가 오류 발생", ex);
+            emitter.completeWithError(ex);
+        }
+    }
+
+    private record ErrorResponse(String type, String message) {}
+    private record RetryInfo(String promptName, int attempt, int maxAttempts) {}
+    private record PartialErrorResponse(String promptName, String message) {}
+
     private String determineErrorType(Exception e) {
         if (e == null) return "UNKNOWN";
-
         if (e instanceof IllegalArgumentException) {
-            if (e.getMessage().contains("No valid JSON")) {
-                return "INVALID_RESPONSE";
-            }
-            return "INVALID_STRUCTURE";
+            return e.getMessage().contains("No valid JSON") ? "INVALID_RESPONSE" : "INVALID_STRUCTURE";
         } else if (e instanceof com.google.gson.JsonSyntaxException) {
             return "MALFORMED_JSON";
         }
@@ -292,16 +393,11 @@ public class AnalysisController {
 
     private String getUserFriendlyMessage(String errorType) {
         return switch (errorType) {
-            case "INVALID_RESPONSE" ->
-                    "AI가 올바른 형식으로 응답하지 않았습니다. 잠시 후 다시 시도해주세요.";
-            case "INVALID_STRUCTURE" ->
-                    "분석 결과가 불완전합니다. 회사명과 직무명을 확인 후 다시 시도해주세요.";
-            case "MALFORMED_JSON" ->
-                    "분석 결과 처리 중 오류가 발생했습니다. 다시 시도해주세요.";
-            case "AI_ERROR" ->
-                    "AI 분석 중 오류가 발생했습니다. 다시 시도해주세요.";
-            default ->
-                    "일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요.";
+            case "INVALID_RESPONSE" -> "AI가 올바른 형식으로 응답하지 않았습니다. 잠시 후 다시 시도해주세요.";
+            case "INVALID_STRUCTURE" -> "분석 결과가 불완전합니다. 회사명과 직무명을 확인 후 다시 시도해주세요.";
+            case "MALFORMED_JSON" -> "분석 결과 처리 중 오류가 발생했습니다. 다시 시도해주세요.";
+            case "AI_ERROR" -> "AI 분석 중 오류가 발생했습니다. 다시 시도해주세요.";
+            default -> "일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요.";
         };
     }
 }
