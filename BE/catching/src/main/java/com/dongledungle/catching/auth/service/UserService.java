@@ -2,6 +2,7 @@ package com.dongledungle.catching.auth.service;
 
 import com.dongledungle.catching.auth.dto.response.GoogleUserInfoResponseDto;
 import com.dongledungle.catching.auth.dto.response.LoginResponse;
+import com.dongledungle.catching.auth.dto.response.MeResponse;
 import com.dongledungle.catching.auth.dto.token.JwtTokens;
 import com.dongledungle.catching.auth.entity.User;
 import com.dongledungle.catching.auth.jwt.JwtTokenGenerator;
@@ -68,14 +69,21 @@ public class UserService {
         return LoginResponse.builder()
                 .accessToken(tokens.getAccessToken())
                 .refreshToken(tokens.getRefreshToken())
-                .userId(user.getUserId())
-                .userName(user.getUserName())
-                .email(user.getEmail())
-                .notionApiKey(user.getNotionApiKey())
-                .notionPageId(user.getNotionPageId())
                 .isNewUser(isNewUser)
                 .build();
     }
+
+    @Transactional(readOnly = true)
+    public MeResponse getMe(Long userId) {
+        User user = findById(userId);
+
+        return MeResponse.builder()
+                .userId(user.getUserId())
+                .userName(user.getUserName())
+                .email(user.getEmail())
+                .build();
+    }
+
 
 
     /**
@@ -123,18 +131,6 @@ public class UserService {
                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다. userId=" + id));
     }
 
-    /**
-     * 노션 연동 정보 업데이트
-     * @param userId 사용자 ID
-     * @param notionApiKey 노션 API 키
-     * @param notionPageId 노션 페이지 ID
-     */
-    @Transactional
-    public void updateNotionInfo(Long userId, String notionApiKey, String notionPageId) {
-        User user = findById(userId);
-        user.updateNotionInfo(notionApiKey, notionPageId);
-        log.info("노션 정보 업데이트 완료: userId={}", userId);
-    }
 
     /**
      * 사용자 이름 수정

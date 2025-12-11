@@ -39,30 +39,6 @@ public class UserController {
     }
 
     /**
-     * 노션 정보 업데이트
-     * PUT /api/users/{userId}/notion
-     *
-     * @param userId 사용자 ID
-     * @param notionApiKey 노션 API 키
-     * @param notionPageId 노션 페이지 ID
-     * @return ApiResponse<String>
-     */
-    @PutMapping("/{userId}/notion")
-    public ResponseEntity<ApiResponse<String>> updateNotionInfo(
-            @PathVariable Long userId,
-            @RequestParam String notionApiKey,
-            @RequestParam String notionPageId) {
-        try {
-            userService.updateNotionInfo(userId, notionApiKey, notionPageId);
-            return ResponseEntity.ok(ApiResponse.success("노션 정보가 업데이트되었습니다."));
-        } catch (Exception e) {
-            log.error("노션 정보 업데이트 실패: userId={}", userId, e);
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("노션 정보 업데이트에 실패했습니다."));
-        }
-    }
-
-    /**
      * 사용자 이름 수정
      * PATCH /api/users/{userId}/name
      *

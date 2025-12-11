@@ -26,31 +26,6 @@ public class LoginResponse {
     private String refreshToken;
 
     /**
-     * 사용자 ID
-     */
-    private Long userId;
-
-    /**
-     * 사용자 이름
-     */
-    private String userName;
-
-    /**
-     * 이메일
-     */
-    private String email;
-
-    /**
-     * 노션 API 키
-     */
-    private String notionApiKey;
-
-    /**
-     * 노션 페이지 ID
-     */
-    private String notionPageId;
-
-    /**
      * 신규 회원 여부 (true: 첫 로그인, false: 기존 회원)
      */
     private boolean isNewUser;
