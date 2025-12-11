@@ -1,6 +1,10 @@
 import { create } from "zustand";
 import { AuthState } from "@/types/store";
-import { loginWithGoogle, getCurrentUser } from "@/services/authService";
+import {
+  loginWithGoogle,
+  getCurrentUser,
+  logout as logoutApi,
+} from "@/services/authService";
 import { useUserStore } from "./userStore";
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -28,8 +32,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         });
       });
 
-      console.log("Google Token 받음:", googleToken);
-
       // 백엔드로 Google Token 전송
       const { accessToken, refreshToken, isNewUser } = await loginWithGoogle(
         googleToken
@@ -41,28 +43,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         refreshToken,
       });
 
-      // 사용자 정보 가져오기
-      const userInfo = await getCurrentUser();
+      // 사용자 정보 가져오기 (토큰 직접 전달)
+      const userInfo = await getCurrentUser(accessToken);
       useUserStore.getState().setUser(userInfo);
-
-      if (isNewUser) {
-        console.log("회원가입 완료:", userInfo);
-      } else {
-        console.log("로그인 완료:", userInfo);
-      }
 
       set({ isAuthenticated: true, isLoading: false, isNewUser });
       return true;
     } catch (error) {
-      console.error("로그인 실패:", error);
       set({ isLoading: false });
       return false;
     }
   },
 
   // 로그아웃
-  logout: async () => {
+  logout: async (skipBackend = false) => {
     try {
+      // skipBackend가 false일 때만 백엔드 API 호출
+      if (!skipBackend) {
+        await logoutApi();
+      }
+
       // Chrome Identity 캐시된 토큰 제거
       const token = await new Promise<string | undefined>((resolve) => {
         browser.identity.getAuthToken({ interactive: false }, (result: any) => {
@@ -90,23 +90,31 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       useUserStore.getState().clearUser();
 
       set({ isAuthenticated: false, isNewUser: false });
-    } catch (error) {
-      console.error("로그아웃 실패:", error);
-    }
+    } catch (error) {}
   },
 
   // 인증 상태 확인
   checkAuth: async () => {
     try {
-      const result = await browser.storage.local.get("accessToken");
-      if (result.accessToken) {
-        set({ isAuthenticated: true });
-      } else {
+      const result = await browser.storage.local.get([
+        "accessToken",
+        "refreshToken",
+      ]);
+
+      if (!result.accessToken || !result.refreshToken) {
         set({ isAuthenticated: false });
+        return;
       }
+
+      // 토큰 유효성 검증 (사용자 정보 가져오기)
+      const userInfo = await getCurrentUser();
+      useUserStore.getState().setUser(userInfo);
+
+      set({ isAuthenticated: true });
     } catch (error) {
-      console.error("인증 확인 실패:", error);
-      set({ isAuthenticated: false });
+      // 토큰이 만료되었거나 유효하지 않음 - 백엔드 호출 없이 로컬만 정리
+      console.log("토큰 만료, 자동 로그아웃");
+      await get().logout(true); // skipBackend = true
     }
   },
 

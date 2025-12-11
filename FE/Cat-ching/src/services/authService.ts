@@ -18,7 +18,7 @@ export const loginWithGoogle = async (
 
   return {
     ...response.data,
-    isNewUser,
+    isNewUser: isNewUser,
   };
 };
 
@@ -26,8 +26,10 @@ export const loginWithGoogle = async (
 export const refreshAccessToken = async (
   refreshToken: string
 ): Promise<{ accessToken: string }> => {
-  const response = await api.post("/auth/refresh", {
-    refreshToken,
+  const response = await api.post("/auth/refresh", null, {
+    headers: {
+      Authorization: `Bearer ${refreshToken}`,
+    },
   });
 
   return response.data;
@@ -40,8 +42,9 @@ export const logout = async (): Promise<void> => {
 };
 
 // 현재 사용자 정보 가져오기
-export const getCurrentUser = async () => {
-  const response = await api.get("/auth/me");
+export const getCurrentUser = async (token?: string) => {
+  const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+  const response = await api.get("/auth/me", config);
   return response.data;
 };
 

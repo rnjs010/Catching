@@ -10,9 +10,9 @@ export interface AppState {
 
 // 사용자 정보 타입
 export interface User {
-  id: string;
+  userId: number;
+  userName: string;
   email: string;
-  name: string;
 }
 
 // 인증 스토어 타입
@@ -21,7 +21,7 @@ export interface AuthState {
   isLoading: boolean;
   isNewUser: boolean;
   login: () => Promise<boolean>;
-  logout: () => Promise<void>;
+  logout: (skipBackend?: boolean) => Promise<void>;
   checkAuth: () => Promise<void>;
   getToken: () => Promise<string | null>;
 }

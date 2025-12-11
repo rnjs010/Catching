@@ -10,6 +10,11 @@ const api = axios.create({
 // 요청 인터셉터: JWT 토큰 첨부
 api.interceptors.request.use(
   async (config) => {
+    // /auth/refresh 요청은 refreshToken을 사용하므로 accessToken 안 붙임
+    if (config.url?.includes("/auth/refresh")) {
+      return config;
+    }
+
     const result = await browser.storage.local.get("accessToken");
     if (result.accessToken) {
       config.headers.Authorization = `Bearer ${result.accessToken}`;
@@ -21,14 +26,34 @@ api.interceptors.request.use(
   }
 );
 
+// 응답 인터셉터: ApiResponse 구조 unwrap
+api.interceptors.response.use(
+  (response) => {
+    // ApiResponse<T> 구조에서 data 필드 자동 추출
+    if (
+      response.data &&
+      typeof response.data === "object" &&
+      "data" in response.data
+    ) {
+      response.data = response.data.data;
+    }
+    return response;
+  },
+  (error) => Promise.reject(error)
+);
+
 // 응답 인터셉터: 401 에러 시 토큰 갱신
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // 401 에러이고 재시도하지 않은 경우
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // 401 에러이고 재시도하지 않은 경우 (refresh 요청 제외)
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !originalRequest.url?.includes("/auth/refresh")
+    ) {
       originalRequest._retry = true;
 
       try {
@@ -51,8 +76,8 @@ api.interceptors.response.use(
         // 토큰 갱신 실패 시 로그아웃 처리
         console.error("세션 만료:", refreshError);
 
-        // authStore의 logout 호출 (Chrome Identity 토큰 제거 + 스토어 초기화)
-        await useAuthStore.getState().logout();
+        // authStore의 logout 호출
+        await useAuthStore.getState().logout(true);
 
         return Promise.reject(refreshError);
       }

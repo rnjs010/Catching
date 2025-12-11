@@ -247,6 +247,16 @@ export async function detectCompany(): Promise<DetectResult> {
     return { site: null, company: null };
   }
 
+  // chrome://, edge://, about: 등 내부 페이지 제외
+  if (
+    tab.url.startsWith("chrome://") ||
+    tab.url.startsWith("edge://") ||
+    tab.url.startsWith("about:") ||
+    tab.url.startsWith("chrome-extension://")
+  ) {
+    return { site: null, company: null };
+  }
+
   const site = getSiteFromUrl(tab.url);
 
   if (!site) {

@@ -5,6 +5,7 @@ import { Text } from "@/styles/typography";
 import Stepper, { Step } from "@/components/Stepper";
 import { useUserStore } from "@/stores/userStore";
 import { useAppStore } from "@/stores/appStore";
+import { useAuthStore } from "@/stores/authStore";
 import { updateUserInfo } from "@/services/authService";
 import { motion } from "motion/react";
 
@@ -26,7 +27,7 @@ export default function Register() {
   const user = useUserStore((state) => state.user);
   const setUser = useUserStore((state) => state.setUser);
   const navigate = useAppStore((state) => state.navigate);
-  const [name, setName] = useState(user?.name || "");
+  const [name, setName] = useState(user?.userName || "");
   const [isCompleting, setIsCompleting] = useState(false);
 
   const handleComplete = async () => {
@@ -34,13 +35,16 @@ export default function Register() {
 
     try {
       // 이름이 변경되었으면 업데이트
-      if (name !== user?.name) {
+      if (name !== user?.userName) {
         const updatedUser = await updateUserInfo(name);
         setUser(updatedUser);
       }
 
       // 1초 대기
       await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // isNewUser를 false로 변경
+      useAuthStore.setState({ isNewUser: false });
 
       // Search 페이지로 이동
       navigate("search");
@@ -113,7 +117,7 @@ export default function Register() {
             <InputField
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="닉네임"
+              placeholder={name}
               autoFocus
             />
           </div>
