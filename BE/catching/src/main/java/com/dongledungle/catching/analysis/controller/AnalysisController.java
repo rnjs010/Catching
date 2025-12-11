@@ -91,6 +91,7 @@ public class AnalysisController {
     private void processAnalysisWithSSE(AnalysisRequestDto request, SseEmitter emitter, boolean isJsonMode) {
         try {
             // 1. Redis 캐시 확인
+            sendSseEvent(emitter, "source", "redis");
             sendSseEvent(emitter, "status", "캐시 확인 중...");
             String cachedResult = checkCache(request);
             if (cachedResult != null) {
@@ -99,6 +100,7 @@ public class AnalysisController {
             }
 
             // 2. DB 확인
+            sendSseEvent(emitter, "source", "database");
             sendSseEvent(emitter, "status", "기존 분석 결과 확인 중...");
             String dbResult = checkDatabase(request);
             if (dbResult != null) {
@@ -107,6 +109,7 @@ public class AnalysisController {
             }
 
             // 3. AI API 호출
+            sendSseEvent(emitter, "source", "ai");
             sendSseEvent(emitter, "status", "AI가 분석 중입니다...");
             if (isJsonMode) {
                 streamAIAnalysisJson(request, emitter);
@@ -124,7 +127,6 @@ public class AnalysisController {
         log.info("{} 조회 완료", source);
         sendSseEvent(emitter, "status", source.equals("redis") ? "캐시된 분석 결과를 불러왔습니다" : "저장된 분석 결과를 불러왔습니다");
         sendSseEvent(emitter, "data", content);
-        sendSseEvent(emitter, "source", source);
 
         analysisService.findAnalysisInCurrentWeek(request.getCompany(), request.getPosition())
                 .ifPresent(entity -> analysisService.saveHistory(request.getUserId(), entity.getCompanyPositionId()));
@@ -154,7 +156,6 @@ public class AnalysisController {
 
             saveAnalysisResult(request, finalJson);
             sendSseEvent(emitter, "data", finalJson);
-            sendSseEvent(emitter, "source", "ai");
             sendSseEvent(emitter, "status", "분석이 완료되었습니다!");
             sendSseEvent(emitter, "complete", "success");
             emitter.complete();
@@ -199,7 +200,6 @@ public class AnalysisController {
 
             saveAnalysisResult(request, fullResponse, false);
             sendSseEvent(emitter, "data", fullResponse);
-            sendSseEvent(emitter, "source", "ai");
             sendSseEvent(emitter, "status", "분석이 완료되었습니다!");
             sendSseEvent(emitter, "complete", "success");
             emitter.complete();
