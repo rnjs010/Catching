@@ -197,7 +197,7 @@ public class AnalysisController {
                 throw new RuntimeException("모든 프롬프트 호출이 실패했습니다");
             }
 
-            saveAnalysisResult(request, fullResponse);
+            saveAnalysisResult(request, fullResponse, false);
             sendSseEvent(emitter, "data", fullResponse);
             sendSseEvent(emitter, "source", "ai");
             sendSseEvent(emitter, "status", "분석이 완료되었습니다!");
@@ -350,11 +350,35 @@ public class AnalysisController {
         return fullResponse.toString();
     }
 
+    /**
+     * 분석 결과 저장 (오버로드 - JSON 형식 기본)
+     */
     private void saveAnalysisResult(AnalysisRequestDto request, String content) {
+        saveAnalysisResult(request, content, true);
+    }
+
+    /**
+     * 분석 결과 저장 (타입 구분)
+     */
+    private void saveAnalysisResult(AnalysisRequestDto request, String content, boolean isJson) {
+        // JSON이 아닌 경우 JSON 형식으로 래핑
+        String contentToSave = isJson ? content : wrapTextAsJson(content);
+
         long analysisId = analysisService.saveAnalysisToDatabase(
-                request.getCompany(), request.getPosition(), content);
+                request.getCompany(), request.getPosition(), contentToSave);
         analysisService.saveHistory(request.getUserId(), analysisId);
-        analysisService.saveToRedisCache(request.getCompany(), request.getPosition(), content);
+        analysisService.saveToRedisCache(request.getCompany(), request.getPosition(), contentToSave);
+    }
+
+    /**
+     * 마크다운 텍스트를 JSON 형식으로 래핑
+     */
+    private String wrapTextAsJson(String textContent) {
+        JsonObject wrapper = new JsonObject();
+        wrapper.addProperty("content", textContent);
+        wrapper.addProperty("format", "markdown");
+        wrapper.addProperty("timestamp", System.currentTimeMillis());
+        return gson.toJson(wrapper);
     }
 
     private void sendSseEvent(SseEmitter emitter, String eventName, String data) {
