@@ -91,7 +91,6 @@ public class AnalysisController {
     private void processAnalysisWithSSE(AnalysisRequestDto request, SseEmitter emitter, boolean isJsonMode) {
         try {
             // 1. Redis 캐시 확인
-            sendSseEvent(emitter, "source", "redis");
             sendSseEvent(emitter, "status", "캐시 확인 중...");
             String cachedResult = checkCache(request);
             if (cachedResult != null) {
@@ -100,7 +99,6 @@ public class AnalysisController {
             }
 
             // 2. DB 확인
-            sendSseEvent(emitter, "source", "database");
             sendSseEvent(emitter, "status", "기존 분석 결과 확인 중...");
             String dbResult = checkDatabase(request);
             if (dbResult != null) {
@@ -109,8 +107,8 @@ public class AnalysisController {
             }
 
             // 3. AI API 호출
-            sendSseEvent(emitter, "source", "ai");
             sendSseEvent(emitter, "status", "AI가 분석 중입니다...");
+            sendSseEvent(emitter, "source", "ai");
             if (isJsonMode) {
                 streamAIAnalysisJson(request, emitter);
             } else {
@@ -125,6 +123,7 @@ public class AnalysisController {
 
     private void sendCachedResult(SseEmitter emitter, AnalysisRequestDto request, String content, String source) {
         log.info("{} 조회 완료", source);
+        sendSseEvent(emitter, "source", source);
         sendSseEvent(emitter, "status", source.equals("redis") ? "캐시된 분석 결과를 불러왔습니다" : "저장된 분석 결과를 불러왔습니다");
         sendSseEvent(emitter, "data", content);
 
@@ -185,18 +184,21 @@ public class AnalysisController {
 
             // 모든 응답 대기
             CompletableFuture<Void> allFutures = CompletableFuture.allOf(future1, future2, future3, future4);
-
-            // 타임아웃 또는 실패 처리
             allFutures.join();
 
-            // 결과 수집 (실패한 프롬프트는 빈 문자열)
-            String fullResponse = String.join("",
-                    future1.join(), future2.join(), future3.join(), future4.join());
+            // 결과 수집 및 검증 - 하나라도 실패(빈 문자열)하면 전체 실패
+            String result1 = future1.join();
+            String result2 = future2.join();
+            String result3 = future3.join();
+            String result4 = future4.join();
 
-            // 모든 프롬프트가 실패한 경우
-            if (fullResponse.isEmpty()) {
-                throw new RuntimeException("모든 프롬프트 호출이 실패했습니다");
+            // 하나라도 실패한 경우 (빈 문자열) 전체 실패 처리
+            if (result1.isEmpty() || result2.isEmpty() || result3.isEmpty() || result4.isEmpty()) {
+                throw new RuntimeException("일부 프롬프트 호출이 실패했습니다. 모든 분석이 완료되어야 합니다.");
             }
+
+            // 모든 프롬프트가 성공한 경우에만 결과 결합
+            String fullResponse = String.join("", result1, result2, result3, result4);
 
             saveAnalysisResult(request, fullResponse, false);
             sendSseEvent(emitter, "data", fullResponse);
