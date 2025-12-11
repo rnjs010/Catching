@@ -7,9 +7,10 @@ import Search from "@/pages/Search";
 import Register from "@/pages/Register";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import HistoryDrawer from "@/components/HistoryDrawer";
 import { useAuthStore } from "@/stores/authStore";
 import { useAppStore } from "@/stores/appStore";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 const Container = styled.div`
   ${tw`w-full px-2 py-1 min-h-screen flex flex-col justify-between items-center`}
@@ -22,6 +23,7 @@ const ContentWrapper = styled.div`
 function App() {
   const { isAuthenticated, isNewUser, checkAuth } = useAuthStore();
   const { currentPage, navigate } = useAppStore();
+  const [isHistoryOpen, setHistoryOpen] = useState(false);
 
   // 앱 로드 시 인증 상태 확인
   useEffect(() => {
@@ -44,7 +46,7 @@ function App() {
       <GlobalFonts />
 
       <ContentWrapper>
-        <Header />
+        <Header onMenuClick={() => setHistoryOpen(true)} />
 
         {/* 상태 기반 라우팅 */}
         {currentPage === "home" && <Home />}
@@ -53,6 +55,12 @@ function App() {
 
         <Footer />
       </ContentWrapper>
+
+      {/* History Drawer */}
+      <HistoryDrawer
+        isOpen={isHistoryOpen}
+        onClose={() => setHistoryOpen(false)}
+      />
     </Container>
   );
 }

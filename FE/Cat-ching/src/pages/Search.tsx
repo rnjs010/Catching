@@ -16,6 +16,7 @@ import { JobSearchSection } from "@/features/search/components/JobSearchSection"
 import { SearchButton } from "@/features/search/components/SearchButton";
 import { EditableText } from "@/features/search/components/EditableText";
 import { Text } from "@/styles/typography";
+import AlertPopup from "@/components/AlertPopup";
 
 const queryClient = new QueryClient();
 
@@ -61,6 +62,7 @@ function SearchContent() {
 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isOCRProcessing, setIsOCRProcessing] = useState(false);
+  const [showCompanyAlert, setShowCompanyAlert] = useState(false);
 
   // 스플릿텍스트 애니메이션이 한 번 실행되었는지 추적
   const [hasCompanyAnimated, setHasCompanyAnimated] = useState(false);
@@ -213,6 +215,12 @@ function SearchContent() {
   };
 
   const handleAction = async () => {
+    // 회사가 없으면 팝업 표시
+    if (!company) {
+      setShowCompanyAlert(true);
+      return;
+    }
+
     setIsDetectionActive(false);
     setIsAnalyzing(true);
     setIsOCRProcessing(false);
@@ -357,6 +365,12 @@ function SearchContent() {
 
         <SearchButton isActive={ui.isComplete} />
       </div>
+
+      <AlertPopup
+        isOpen={showCompanyAlert}
+        message="회사를 먼저 찾아주세요."
+        onClose={() => setShowCompanyAlert(false)}
+      />
     </ContentArea>
   );
 }
