@@ -14,6 +14,13 @@ java {
 	}
 }
 
+jar {
+    enabled = false
+}
+bootJar {
+    enabled = true
+}
+
 repositories {
 	mavenCentral()
 }
@@ -59,3 +66,4 @@ dependencies {
 tasks.named('test') {
 	useJUnitPlatform()
 }
+
