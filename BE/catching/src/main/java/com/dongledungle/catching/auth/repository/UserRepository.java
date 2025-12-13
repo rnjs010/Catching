@@ -19,12 +19,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByGoogleIdAndIsDeletedFalse(String googleId);
 
     /**
-     * 이메일 + 삭제되지 않은 사용자 조회
-     * (필요하면 유지, 아니면 제거해도 됨)
-     */
-    Optional<User> findByEmailAndIsDeletedFalse(String email);
-
-    /**
      * 이메일 중복 체크
      */
     boolean existsByEmail(String email);

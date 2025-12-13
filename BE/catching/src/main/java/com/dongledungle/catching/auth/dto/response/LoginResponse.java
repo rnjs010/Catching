@@ -14,7 +14,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class LoginResponse {
-
     /**
      * JWT Access Token (인증용 토큰)
      */
@@ -24,9 +23,4 @@ public class LoginResponse {
      * JWT Refresh Token (Access Token 갱신용)
      */
     private String refreshToken;
-
-    /**
-     * 신규 회원 여부 (true: 첫 로그인, false: 기존 회원)
-     */
-    private boolean isNewUser;
 }

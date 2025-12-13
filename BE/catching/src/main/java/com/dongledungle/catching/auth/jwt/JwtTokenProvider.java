@@ -102,6 +102,7 @@ public class JwtTokenProvider {
 
         } catch (ExpiredJwtException e) {
             log.error("만료된 토큰입니다.", e);
+            throw e;
         } catch (UnsupportedJwtException e) {
             log.error("지원하지 않는 토큰입니다.", e);
         } catch (MalformedJwtException e) {

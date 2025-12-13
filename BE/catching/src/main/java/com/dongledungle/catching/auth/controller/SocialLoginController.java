@@ -2,11 +2,14 @@ package com.dongledungle.catching.auth.controller;
 
 import com.dongledungle.catching.auth.common.ApiResponse;
 import com.dongledungle.catching.auth.dto.oauth.GoogleAccessTokenRequest;
+import com.dongledungle.catching.auth.dto.request.MeRequest;
 import com.dongledungle.catching.auth.dto.response.GoogleUserInfoResponseDto;
 import com.dongledungle.catching.auth.dto.response.LoginResponse;
 import com.dongledungle.catching.auth.dto.response.MeResponse;
+import com.dongledungle.catching.auth.dto.token.JwtTokenResponse;
 import com.dongledungle.catching.auth.jwt.JwtTokenProvider;
 import com.dongledungle.catching.auth.service.GoogleService;
+import com.dongledungle.catching.auth.service.JwtTokenService;
 import com.dongledungle.catching.auth.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +17,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
 
 /**
  * 소셜 로그인 컨트롤러
@@ -27,6 +31,7 @@ public class SocialLoginController {
 
     private final GoogleService googleService;
     private final UserService userService;
+    private final JwtTokenService jwtTokenService;
     private final JwtTokenProvider jwtTokenProvider;
 
     /**
@@ -48,13 +53,15 @@ public class SocialLoginController {
             GoogleUserInfoResponseDto googleUser = googleService.getUserInfo(googleAccessToken);
 
             // 2. 로그인 또는 회원가입 처리 (내부에서 JWT 발급)
-            LoginResponse loginResponse = userService.processGoogleLogin(googleUser);
+            Object[] result = userService.processGoogleLogin(googleUser);
+            LoginResponse loginResponse = (LoginResponse) result[0];
+            boolean isNewUser = (boolean) result[1];
 
             log.info("[AUTH] 구글 로그인 성공: email={}, isNewUser={}",
-                    googleUser.getEmail(), loginResponse.isNewUser());
+                    googleUser.getEmail(), isNewUser);
 
             // 신규 회원이면 201 CREATED 반환
-            if (loginResponse.isNewUser()) {
+            if (isNewUser) {
                 return ResponseEntity
                         .status(HttpStatus.CREATED) // 201
                         .body(ApiResponse.success(loginResponse));
@@ -100,23 +107,67 @@ public class SocialLoginController {
         }
     }
 
+    @PutMapping("/me")
+    public ResponseEntity<ApiResponse<MeResponse>> updateMe(
+            Authentication authentication,
+            @RequestBody MeRequest request
+    ) {
+        try {
+            Long userId = Long.parseLong((String) authentication.getPrincipal());
+            MeResponse updated = userService.updateUserName(userId, request.getName());
+            log.info("사용자 정보 수정 성공: userId={}", userId);
+            return ResponseEntity.ok(ApiResponse.success(updated));
+        } catch (Exception e) {
+            log.error("사용자 정보 수정 실패", e);
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("사용자 정보 수정에 실패했습니다."));
+        }
+    }
+
     /**
      * 로그아웃
      * POST /api/auth/logout
      *
-     * @param userId 사용자 ID
      * @return ApiResponse<String>
      */
     @PostMapping("/logout")
-    public ResponseEntity<ApiResponse<String>> logout(@RequestParam Long userId) {
+    public ResponseEntity<ApiResponse<String>> logout(Authentication authentication) {
         try {
-            userService.deleteUser(userId);
-            log.info("로그아웃 성공: userId={}", userId);
+            Long userId = Long.parseLong((String) authentication.getPrincipal());
+            jwtTokenService.logout(String.valueOf(userId));
             return ResponseEntity.ok(ApiResponse.success("로그아웃되었습니다."));
         } catch (Exception e) {
             log.error("로그아웃 실패", e);
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error("로그아웃에 실패했습니다."));
+        }
+    }
+
+    /**
+     * Access Token 갱신
+     * POST /api/token/refresh
+     *
+     * @param refreshToken Refresh Token
+     * @return ApiResponse<JwtTokenResponse> (새로운 Access Token)
+     */
+    @PostMapping("/refresh")
+    public ResponseEntity<ApiResponse<JwtTokenResponse>> refreshToken(
+            @RequestHeader("Authorization") String refreshToken) {
+        try {
+            // "Bearer " 제거
+            String token = refreshToken.startsWith("Bearer ")
+                    ? refreshToken.substring(7)
+                    : refreshToken;
+
+            JwtTokenResponse response = jwtTokenService.refreshAccessToken(token);
+
+            log.info("Access Token 갱신 성공");
+            return ResponseEntity.ok(ApiResponse.success(response));
+
+        } catch (Exception e) {
+            log.error("Access Token 갱신 실패", e);
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("토큰 갱신에 실패했습니다: " + e.getMessage()));
         }
     }
 

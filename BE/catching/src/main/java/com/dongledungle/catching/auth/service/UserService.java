@@ -39,10 +39,10 @@ public class UserService {
      * - 신규 회원: 회원가입 후 로그인
      *
      * @param googleUser 구글 사용자 정보
-     * @return LoginResponse (토큰 + 사용자 정보)
+     * @return Object[] {LoginResponse (토큰), boolean (신규 여부)}
      */
     @Transactional
-    public LoginResponse processGoogleLogin(GoogleUserInfoResponseDto googleUser) {
+    public Object[] processGoogleLogin(GoogleUserInfoResponseDto googleUser) {
         // 1. 구글 ID로 삭제되지 않은 회원 조회
         Optional<User> existingUser =
                 userRepository.findByGoogleIdAndIsDeletedFalse(googleUser.getId());
@@ -66,11 +66,12 @@ public class UserService {
         JwtTokens tokens = generateAndSaveTokens(user);
 
         // 4. 로그인 응답 DTO 생성
-        return LoginResponse.builder()
+        LoginResponse loginResponse = LoginResponse.builder()
                 .accessToken(tokens.getAccessToken())
                 .refreshToken(tokens.getRefreshToken())
-                .isNewUser(isNewUser)
                 .build();
+
+        return new Object[]{loginResponse, isNewUser};
     }
 
     @Transactional(readOnly = true)
@@ -78,7 +79,6 @@ public class UserService {
         User user = findById(userId);
 
         return MeResponse.builder()
-                .userId(user.getUserId())
                 .userName(user.getUserName())
                 .email(user.getEmail())
                 .build();
@@ -134,16 +134,21 @@ public class UserService {
 
     /**
      * 사용자 이름 수정
-     * @param userId 사용자 ID
+     *
+     * @param userId   사용자 ID
      * @param userName 새 사용자 이름
+     * @return MeResponse
      */
     @Transactional
-    public void updateUserName(Long userId, String userName) {
+    public MeResponse updateUserName(Long userId, String userName) {
         User user = findById(userId);
         user.updateUserName(userName);
         log.info("사용자 이름 업데이트 완료: userId={}, userName={}", userId, userName);
+        return MeResponse.builder()
+                .userName(user.getUserName())
+                .email(user.getEmail())
+                .build();
     }
-
     /**
      * 사용자 삭제 (소프트 삭제)
      * @param userId 사용자 ID
