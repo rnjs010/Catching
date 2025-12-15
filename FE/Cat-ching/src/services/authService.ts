@@ -25,7 +25,7 @@ export const loginWithGoogle = async (
 // 토큰 리프레시
 export const refreshAccessToken = async (
   refreshToken: string
-): Promise<{ accessToken: string }> => {
+): Promise<{ accessToken: string; refreshToken: string }> => {
   const response = await api.post("/auth/refresh", null, {
     headers: {
       Authorization: `Bearer ${refreshToken}`,

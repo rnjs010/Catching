@@ -48,11 +48,6 @@ function extractCompany(site: string, url: string): string | null {
       url.includes("/company")
     ) {
       return querySelect("div.company-header-branding-body div.name");
-    } else if (urlObj.pathname !== "/") {
-      const meta = document.querySelector<HTMLMetaElement>(
-        'meta[name="writer"]'
-      );
-      return meta?.content || null;
     }
   }
 

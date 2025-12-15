@@ -42,6 +42,9 @@ api.interceptors.response.use(
   (error) => Promise.reject(error)
 );
 
+// 리프레시 토큰 갱신 중복 방지를 위한 Promise 캐시
+let refreshTokenPromise: Promise<string> | null = null;
+
 // 응답 인터셉터: 401 에러 시 토큰 갱신
 api.interceptors.response.use(
   (response) => response,
@@ -57,16 +60,33 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        // 리프레시 토큰으로 새 액세스 토큰 받기
-        const result = await browser.storage.local.get("refreshToken");
-        if (!result.refreshToken) {
-          throw new Error("리프레시 토큰이 없습니다");
+        // 이미 진행 중인 리프레시가 있으면 그 결과를 기다림
+        if (!refreshTokenPromise) {
+          refreshTokenPromise = (async () => {
+            try {
+              const result = await browser.storage.local.get("refreshToken");
+              if (!result.refreshToken) {
+                throw new Error("리프레시 토큰이 없습니다");
+              }
+
+              const { accessToken, refreshToken: newRefreshToken } =
+                await refreshAccessToken(result.refreshToken);
+
+              // 새 토큰 저장
+              await browser.storage.local.set({
+                accessToken,
+                refreshToken: newRefreshToken,
+              });
+
+              return accessToken;
+            } finally {
+              // 완료되면 캐시 초기화
+              refreshTokenPromise = null;
+            }
+          })();
         }
 
-        const { accessToken } = await refreshAccessToken(result.refreshToken);
-
-        // 새 토큰 저장
-        await browser.storage.local.set({ accessToken });
+        const accessToken = await refreshTokenPromise;
 
         // 원래 요청에 새 토큰 적용
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
@@ -75,6 +95,9 @@ api.interceptors.response.use(
       } catch (refreshError) {
         // 토큰 갱신 실패 시 로그아웃 처리
         console.error("세션 만료:", refreshError);
+
+        // 캐시 초기화
+        refreshTokenPromise = null;
 
         // authStore의 logout 호출
         await useAuthStore.getState().logout(true);
