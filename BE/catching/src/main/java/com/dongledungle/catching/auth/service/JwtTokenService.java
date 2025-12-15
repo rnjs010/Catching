@@ -6,6 +6,7 @@ import com.dongledungle.catching.auth.jwt.JwtTokenProvider;
 import com.dongledungle.catching.auth.repository.RefreshTokenRedisRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 /**
@@ -18,6 +19,9 @@ public class JwtTokenService {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenRedisRepository refreshTokenRedisRepository;
+    
+    @Value("${jwt.refresh-token-expire-time}")
+    private long refreshTokenExpireTime;
 
     /**
      * Refresh Token으로 Access Token 갱신
@@ -41,13 +45,18 @@ public class JwtTokenService {
             throw new TokenRefreshException("유효하지 않은 Refresh Token입니다.");
         }
 
-        // 4. 새로운 Access Token 생성
+        // 4. 새로운 Token 생성
         String newAccessToken = jwtTokenProvider.createAccessToken(userId);
+        String newRefreshToken = jwtTokenProvider.createRefreshToken(userId);
+        
+        // 5. 새로운 Refresh Token을 Redis에 저장 (기존것 덮어씀)
+        refreshTokenRedisRepository.save(userId, newRefreshToken, refreshTokenExpireTime);
 
-        log.info("Access Token 갱신 완료: userId={}", userId);
+        log.info("Token 갱신 완료: userId={}", userId);
 
         return JwtTokenResponse.builder()
                 .accessToken(newAccessToken)
+                .refreshToken(newRefreshToken)
                 .build();
     }
 
