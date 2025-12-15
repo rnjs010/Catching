@@ -53,34 +53,29 @@ export default defineContentScript({
       }
     }
 
-    // 잡플래닛 URL 파라미터 변경 감지
+    // 잡플래닛 URL 파라미터 변경 감지 (없어도 작동하는 듯)
     if (window.location.href.includes("jobplanet.co.kr/job/search")) {
-      let lastUrl = window.location.href;
-
-      const checkUrlChange = () => {
-        if (window.location.href !== lastUrl) {
-          lastUrl = window.location.href;
-          console.log("잡플래닛 URL 변경 감지");
-          setTimeout(() => {
-            browser.runtime.sendMessage({ action: "jobplanetChanged" });
-          }, 1500);
-        }
-      };
-
-      const originalPushState = history.pushState;
-      const originalReplaceState = history.replaceState;
-
-      history.pushState = function (...args) {
-        originalPushState.apply(this, args);
-        checkUrlChange();
-      };
-
-      history.replaceState = function (...args) {
-        originalReplaceState.apply(this, args);
-        checkUrlChange();
-      };
-
-      window.addEventListener("popstate", checkUrlChange);
+      // let lastUrl = window.location.href;
+      // const checkUrlChange = () => {
+      //   if (window.location.href !== lastUrl) {
+      //     lastUrl = window.location.href;
+      //     console.log("잡플래닛 URL 변경 감지");
+      //     setTimeout(() => {
+      //       browser.runtime.sendMessage({ action: "jobplanetChanged" });
+      //     }, 1500);
+      //   }
+      // };
+      // const originalPushState = history.pushState;
+      // const originalReplaceState = history.replaceState;
+      // history.pushState = function (...args) {
+      //   originalPushState.apply(this, args);
+      //   checkUrlChange();
+      // };
+      // history.replaceState = function (...args) {
+      //   originalReplaceState.apply(this, args);
+      //   checkUrlChange();
+      // };
+      // window.addEventListener("popstate", checkUrlChange);
     }
 
     // 잡다 모달 감지
