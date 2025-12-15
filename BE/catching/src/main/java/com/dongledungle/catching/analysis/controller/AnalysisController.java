@@ -4,6 +4,7 @@ import com.dongledungle.catching.analysis.dto.AnalysisRequestDto;
 import com.dongledungle.catching.analysis.dto.AnalysisResponseDto;
 import com.dongledungle.catching.analysis.service.AnalysisService;
 import com.dongledungle.catching.analysis.service.GeminiService;
+import com.dongledungle.catching.auth.entity.User;
 import com.dongledungle.catching.common.response.ApiResponse;
 import com.dongledungle.catching.common.util.JsonParserUtil;
 import com.google.genai.ResponseStream;
@@ -17,6 +18,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -39,15 +42,19 @@ public class AnalysisController {
     private static final long RETRY_DELAY_MS = 1000;
 
     @PostMapping(value = "/analysis/json", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter analyzeJson(@RequestBody AnalysisRequestDto request) {
+    public SseEmitter analyzeJson(Authentication authentication, @RequestBody AnalysisRequestDto request) {
         SseEmitter emitter = new SseEmitter(600000L);
+        Long userId = Long.parseLong((String) authentication.getPrincipal());
+        request.setUserId(userId);
         CompletableFuture.runAsync(() -> processAnalysisWithSSE(request, emitter, true));
         return emitter;
     }
 
     @PostMapping(value = "/analysis/text", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter analyzeText(@RequestBody AnalysisRequestDto request) {
+    public SseEmitter analyzeText(Authentication authentication, @RequestBody AnalysisRequestDto request) {
         SseEmitter emitter = new SseEmitter(600000L);
+        Long userId = Long.parseLong((String) authentication.getPrincipal());
+        request.setUserId(userId);
         CompletableFuture.runAsync(() -> processAnalysisWithSSE(request, emitter, false));
         return emitter;
     }

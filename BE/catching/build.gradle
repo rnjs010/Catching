@@ -14,6 +14,13 @@ java {
 	}
 }
 
+jar {
+    enabled = false
+}
+bootJar {
+    enabled = true
+}
+
 repositories {
 	mavenCentral()
 }
@@ -26,10 +33,26 @@ dependencies {
 	implementation 'com.google.guava:guava:33.0.0-jre'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+	runtimeOnly 'org.postgresql:postgresql'
+	// 스프링 시큐리티 (SecurityConfig, 필터)
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+	// validation (@Valid 등)
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	// OAuth2 클라이언트 (구글 로그인 실제 연동 시 사용할 수도 있음)
+	implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
+	// lombok
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
-	runtimeOnly 'org.postgresql:postgresql'
+	testCompileOnly 'org.projectlombok:lombok'
+	testAnnotationProcessor 'org.projectlombok:lombok'
+	// JWT
+	implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+	// Actuator
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
+	// 테스트
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
