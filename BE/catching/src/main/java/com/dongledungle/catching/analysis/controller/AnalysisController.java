@@ -51,10 +51,10 @@ public class AnalysisController {
     }
 
     @PostMapping(value = "/analysis/text", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter analyzeText(Authentication authentication, @RequestBody AnalysisRequestDto request) {
+    public SseEmitter analyzeText(@RequestBody AnalysisRequestDto request) {
         SseEmitter emitter = new SseEmitter(600000L);
-        Long userId = Long.parseLong((String) authentication.getPrincipal());
-        request.setUserId(userId);
+        //Long userId = Long.parseLong((String) authentication.getPrincipal());
+        //request.setUserId(userId);
         CompletableFuture.runAsync(() -> processAnalysisWithSSE(request, emitter, false));
         return emitter;
     }
@@ -265,10 +265,6 @@ public class AnalysisController {
     private String checkCache(AnalysisRequestDto request) {
         log.debug("Redis 캐시 확인");
         String cache = analysisService.getFromRedisCache(request.getCompany(), request.getPosition());
-        if (cache != null) {
-            analysisService.findAnalysisInCurrentWeek(request.getCompany(), request.getPosition())
-                    .ifPresent(entity -> analysisService.saveHistory(request.getUserId(), entity.getCompanyPositionId()));
-        }
         return cache;
     }
 
@@ -276,7 +272,6 @@ public class AnalysisController {
         log.debug("DB 확인");
         return analysisService.findAnalysisInCurrentWeek(request.getCompany(), request.getPosition())
                 .map(entity -> {
-                    analysisService.saveHistory(request.getUserId(), entity.getCompanyPositionId());
                     analysisService.saveToRedisCache(request.getCompany(), request.getPosition(), entity.getContent());
                     return entity.getContent();
                 }).orElse(null);
