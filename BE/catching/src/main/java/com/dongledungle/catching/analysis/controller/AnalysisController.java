@@ -2,6 +2,7 @@ package com.dongledungle.catching.analysis.controller;
 
 import com.dongledungle.catching.analysis.dto.AnalysisRequestDto;
 import com.dongledungle.catching.analysis.dto.AnalysisResponseDto;
+import com.dongledungle.catching.analysis.entity.Analysis;
 import com.dongledungle.catching.analysis.service.AnalysisService;
 import com.dongledungle.catching.analysis.service.GeminiService;
 import com.dongledungle.catching.auth.entity.User;
@@ -75,7 +76,7 @@ public class AnalysisController {
             var dbResult = checkDatabase(request);
             if (dbResult != null) {
                 return ResponseEntity.ok(ApiResponse.success(
-                        AnalysisResponseDto.success(request.getCompany(), request.getPosition(), dbResult, "database")));
+                        AnalysisResponseDto.success(request.getCompany(), request.getPosition(), dbResult.getContent(), "database")));
             }
 
             // 3. AI API 호출
@@ -101,15 +102,15 @@ public class AnalysisController {
             sendSseEvent(emitter, "status", "캐시 확인 중...");
             String cachedResult = checkCache(request);
             if (cachedResult != null) {
-                sendCachedResult(emitter, request, cachedResult, "redis");
+                sendCachedResult(emitter, request, cachedResult, 0L, "redis");
                 return;
             }
 
             // 2. DB 확인
             sendSseEvent(emitter, "status", "기존 분석 결과 확인 중...");
-            String dbResult = checkDatabase(request);
+            Analysis dbResult = checkDatabase(request);
             if (dbResult != null) {
-                sendCachedResult(emitter, request, dbResult, "database");
+                sendCachedResult(emitter, request, dbResult.getContent(), dbResult.getCompanyPositionId(), "database");
                 return;
             }
 
@@ -128,17 +129,15 @@ public class AnalysisController {
         }
     }
 
-    private void sendCachedResult(SseEmitter emitter, AnalysisRequestDto request, String content, String source) {
+    private void sendCachedResult(SseEmitter emitter, AnalysisRequestDto request, String content, Long analysisId, String source) {
         log.info("{} 조회 완료", source);
         sendSseEvent(emitter, "source", source);
         sendSseEvent(emitter, "status", source.equals("redis") ? "캐시된 분석 결과를 불러왔습니다" : "저장된 분석 결과를 불러왔습니다");
         sendSseEvent(emitter, "data", content);
 
-        analysisService.findAnalysisInCurrentWeek(request.getCompany(), request.getPosition())
-                .ifPresent(entity -> analysisService.saveHistory(request.getUserId(), entity.getCompanyPositionId()));
-
         if (source.equals("database")) {
             analysisService.saveToRedisCache(request.getCompany(), request.getPosition(), content);
+            analysisService.saveHistory(request.getUserId(), analysisId);
         }
 
         sendSseEvent(emitter, "complete", "success");
@@ -268,13 +267,9 @@ public class AnalysisController {
         return cache;
     }
 
-    private String checkDatabase(AnalysisRequestDto request) {
+    private Analysis checkDatabase(AnalysisRequestDto request) {
         log.debug("DB 확인");
-        return analysisService.findAnalysisInCurrentWeek(request.getCompany(), request.getPosition())
-                .map(entity -> {
-                    analysisService.saveToRedisCache(request.getCompany(), request.getPosition(), entity.getContent());
-                    return entity.getContent();
-                }).orElse(null);
+        return analysisService.findAnalysisInCurrentWeek(request.getCompany(), request.getPosition()).orElse(null);
     }
 
     private String callAIWithRetry(AnalysisRequestDto request) throws Exception {

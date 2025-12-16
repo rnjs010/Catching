@@ -108,6 +108,37 @@ class AnalysisControllerTest {
         assertThat(emitter).isNotNull();
     }
 
+    @Test
+    @DisplayName("Redis 미스, DB 히트 - AI API 호출 X, Redis에 저장")
+    void testDatabaseCache_Hit() throws Exception{
+        // given
+        String dbContent = prompt1Response + prompt2Response + prompt3Response + prompt4Response;
+        when(analysisService.getFromRedisCache(anyString(), anyString()))
+                .thenReturn(null); // Redis 미스
+
+        Analysis mockAnalysis = createMockAnalysis(dbContent);
+        when(analysisService.findAnalysisInCurrentWeek(anyString(), anyString()))
+                .thenReturn(Optional.of(mockAnalysis));
+
+        // when
+        SseEmitter emitter = analysisController.analyzeText(request);
+        Thread.sleep(500);
+
+        // then
+        verify(analysisService, times(1)).getFromRedisCache("현대오토에버", "스마트팩토리");
+        verify(analysisService, times(1)).findAnalysisInCurrentWeek("현대오토에버", "스마트팩토리");
+        verify(geminiService, never()).analyzeCompanyText1(any(), anyString(), anyString());
+        verify(geminiService, never()).analyzeCompanyText2(any(), anyString(), anyString());
+        verify(geminiService, never()).analyzeCompanyText3(any(), anyString(), anyString(), anyString());
+        verify(geminiService, never()).analyzeCompanyText4(any(), anyString(), anyString(), anyString());
+
+        // Redis에 저장했는지 확인
+        verify(analysisService, times(1))
+                .saveToRedisCache(eq("현대오토에버"), eq("스마트팩토리"), anyString());
+        verify(analysisService, times(1)).saveHistory(eq(1L), eq(mockAnalysis.getCompanyPositionId()));
+        assertThat(emitter).isNotNull();
+    }
+
     private Analysis createMockAnalysis(String content) {
         return Analysis.builder()
                 .companyPositionId(100L)
