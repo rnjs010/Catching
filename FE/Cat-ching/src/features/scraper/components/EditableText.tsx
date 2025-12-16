@@ -2,7 +2,6 @@ import styled from "styled-components";
 import tw from "twin.macro";
 import { Text } from "@/styles/typography";
 import SplitText from "@/components/SplitText";
-import GradientText from "@/components/GradientText";
 import { Pencil } from "lucide-react";
 import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent } from "react";
 
@@ -32,7 +31,7 @@ interface EditableTextProps {
   isEditable: boolean;
   onEdit: () => void;
   onSave: (newText: string) => void;
-  onCancel: () => void;
+  onClose: () => void;
   skipAnimation?: boolean;
   placeholder?: string;
   delayCalculator?: (text: string) => number;
@@ -43,7 +42,7 @@ export const EditableText = ({
   isEditable,
   onEdit,
   onSave,
-  onCancel,
+  onClose,
   skipAnimation = false,
   placeholder = "",
   delayCalculator,
@@ -87,7 +86,7 @@ export const EditableText = ({
     resize();
   }, [isEditable]);
 
-  // 애니메이션 필요 여부 판단
+  // 애니메이션 여부 판단
   useEffect(() => {
     if (!text || skipAnimation) {
       setIsAnimationDone(true);
@@ -103,13 +102,13 @@ export const EditableText = ({
 
   const saveAndClose = () => {
     onSave(currentText);
-    onCancel();
+    onClose();
   };
 
   const cancelEdit = () => {
     isCancelingRef.current = true;
     setCurrentText(backupRef.current);
-    onCancel();
+    onClose();
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -136,7 +135,8 @@ export const EditableText = ({
     setCurrentText(e.target.value);
   };
 
-  const canEdit = !!text && isAnimationDone && !isEditable;
+  const canEdit = Boolean(text) && isAnimationDone && !isEditable;
+  const shouldShowStaticText = isAnimationDone || skipAnimation;
 
   return (
     <div className="flex items-center justify-center gap-2 break-all">
@@ -153,7 +153,7 @@ export const EditableText = ({
       ) : (
         <>
           {text &&
-            (isAnimationDone || skipAnimation ? (
+            (shouldShowStaticText ? (
               <Text variant="2xl" weight="semibold" color="blue80">
                 {text}
               </Text>

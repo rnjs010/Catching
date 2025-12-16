@@ -24,43 +24,53 @@ const Wrapper = styled.div`
 
 export default function Search() {
   const { company, isLoading } = useCompanyDetector();
-
-  const showCompany = useShowCompany(isLoading, company);
+  const showResult = useShowCompany(isLoading, company);
 
   const [companyValue, setCompanyValue] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [isAutoDetected, setIsAutoDetected] = useState(false);
 
-  const [companyState, setCompanyState] = useState<
-    "loading" | "analyzing" | "empty" | "ready"
-  >("loading");
+  const companyState = (() => {
+    if (isLoading) return "loading";
+    if (!showResult) return "analyzing";
+    if (!company) return "empty";
+    return "ready";
+  })();
 
   useEffect(() => {
-    if (isLoading) {
-      setCompanyState("loading");
+    if (companyState !== "ready") {
+      setCompanyValue(null);
+      setIsAutoDetected(false);
       return;
     }
 
-    if (!showCompany) {
-      setCompanyState("analyzing");
-      return;
-    }
-
-    if (!company) {
-      setCompanyState("empty");
-      setCompanyValue("직접 입력해주세요");
-      return;
-    }
-
-    setCompanyState("ready");
     setCompanyValue(company);
-  }, [isLoading, showCompany, company]);
+    setIsAutoDetected(true);
+  }, [companyState, company]);
 
   const ui = {
-    found: !!showCompany,
-    text: showCompany ? "!" : "?",
-    color: showCompany ? "blue70" : "black",
-    image: showCompany ? catFLogo : catQLogo,
+    hasCompany: Boolean(companyValue),
+    text: companyValue ? "!" : "?",
+    color: companyValue ? "blue70" : "black",
+    image: companyValue ? catFLogo : catQLogo,
   } as const;
+
+  const startEdit = () => setIsEditing(true);
+  const closeEdit = () => setIsEditing(false);
+
+  const saveCompany = (value: string) => {
+    const trimmed = value.trim();
+    if (trimmed) {
+      setCompanyValue(trimmed);
+      setIsAutoDetected(false);
+    }
+    closeEdit();
+  };
+
+  const isEditableVisible =
+    companyState === "empty" || companyState === "ready";
+
+  const displayText = companyValue ?? "직접 입력해주세요";
 
   return (
     <>
@@ -68,7 +78,7 @@ export default function Search() {
         <Text variant="2xl" weight="extrabold" color={ui.color}>
           {ui.text}
         </Text>
-        <CatImage src={ui.image} alt="Cat Logo" isFound={ui.found} />
+        <CatImage src={ui.image} alt="Cat Logo" isFound={ui.hasCompany} />
         <Wrapper>
           {companyState === "loading" && (
             <GradientText className="text-2xl font-semibold">
@@ -82,18 +92,15 @@ export default function Search() {
             </GradientText>
           )}
 
-          {(companyState === "empty" || companyState === "ready") && (
+          {isEditableVisible && (
             <EditableText
-              text={companyValue}
+              text={displayText}
               placeholder="회사 이름"
               isEditable={isEditing}
-              skipAnimation={companyState === "empty"}
-              onEdit={() => setIsEditing(true)}
-              onCancel={() => setIsEditing(false)}
-              onSave={(value) => {
-                setCompanyValue(value);
-                setIsEditing(false);
-              }}
+              skipAnimation={!isAutoDetected}
+              onEdit={startEdit}
+              onClose={closeEdit}
+              onSave={saveCompany}
             />
           )}
         </Wrapper>
