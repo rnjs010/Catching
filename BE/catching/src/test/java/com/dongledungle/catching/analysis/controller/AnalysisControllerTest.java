@@ -3,7 +3,9 @@ package com.dongledungle.catching.analysis.controller;
 import com.dongledungle.catching.analysis.dto.AnalysisRequestDto;
 import com.dongledungle.catching.analysis.entity.Analysis;
 import com.dongledungle.catching.analysis.service.AnalysisService;
+import com.dongledungle.catching.analysis.service.AnalysisService.CacheResult;
 import com.dongledungle.catching.analysis.service.GeminiService;
+import com.dongledungle.catching.history.service.HistoryService;
 import com.google.genai.ResponseStream;
 import com.google.genai.types.Candidate;
 import com.google.genai.types.Content;
@@ -16,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.time.LocalDate;
@@ -36,6 +39,12 @@ class AnalysisControllerTest {
     @Mock
     private AnalysisService analysisService;
 
+    @Mock
+    private HistoryService historyService;
+
+    @Mock
+    private Authentication authentication;
+
     @InjectMocks
     private AnalysisController analysisController;
 
@@ -47,11 +56,12 @@ class AnalysisControllerTest {
 
     @BeforeEach
     void setUp() {
+        when(authentication.getPrincipal()).thenReturn("1");
+
         request = AnalysisRequestDto.builder()
                 .today(LocalDate.now().toString())
                 .company("현대오토에버")
                 .position("스마트팩토리")
-                .userId(1L)
                 .analysisDepth("standard")
                 .build();
 
@@ -90,26 +100,22 @@ class AnalysisControllerTest {
     void testRedisCache_Hit() throws Exception {
         // given
         String cachedContent = prompt1Response + prompt2Response + prompt3Response + prompt4Response;
+        CacheResult cacheResult = new CacheResult(100L, cachedContent);
 
         when(analysisService.getFromRedisCache(anyString(), anyString()))
-                .thenReturn(cachedContent);
-
-        when(analysisService.findAnalysisInCurrentWeek(anyString(), anyString()))
-                .thenReturn(Optional.of(createMockAnalysis(cachedContent)));
+                .thenReturn(cacheResult);
 
         // when
-        SseEmitter emitter = analysisController.analyzeText(request);
+        SseEmitter emitter = analysisController.analyzeText(authentication, request);
         Thread.sleep(500);
 
         // then
         verify(analysisService, times(1)).getFromRedisCache("현대오토에버", "스마트팩토리");
+        verify(historyService, times(1)).saveHistory(eq(1L), eq(100L));
         verify(geminiService, never()).analyzeCompanyText1(any(), anyString(), anyString());
         verify(geminiService, never()).analyzeCompanyText2(any(), anyString(), anyString());
         verify(geminiService, never()).analyzeCompanyText3(any(), anyString(), anyString(), anyString());
         verify(geminiService, never()).analyzeCompanyText4(any(), anyString(), anyString(), anyString());
-
-        // saveHistory 호출 횟수 : 1회
-        verify(analysisService, times(1)).saveHistory(eq(1L), anyLong());
 
         assertThat(emitter).isNotNull();
     }
@@ -127,7 +133,7 @@ class AnalysisControllerTest {
                 .thenReturn(Optional.of(mockAnalysis));
 
         // when
-        SseEmitter emitter = analysisController.analyzeText(request);
+        SseEmitter emitter = analysisController.analyzeText(authentication, request);
         Thread.sleep(500);
 
         // then
@@ -140,8 +146,8 @@ class AnalysisControllerTest {
 
         // Redis에 저장했는지 확인
         verify(analysisService, times(1))
-                .saveToRedisCache(eq("현대오토에버"), eq("스마트팩토리"), anyString());
-        verify(analysisService, times(1)).saveHistory(eq(1L), eq(mockAnalysis.getCompanyPositionId()));
+                .saveToRedisCache(eq("현대오토에버"), eq("스마트팩토리"), anyString(), eq(100L));
+        verify(historyService, times(1)).saveHistory(eq(1L), eq(mockAnalysis.getCompanyPositionId()));
         assertThat(emitter).isNotNull();
     }
 
@@ -174,7 +180,7 @@ class AnalysisControllerTest {
                 .thenReturn(123L);
 
         // when
-        SseEmitter emitter = analysisController.analyzeText(request);
+        SseEmitter emitter = analysisController.analyzeText(authentication, request);
         Thread.sleep(2000); // 병렬 처리 대기
 
         // then
@@ -188,8 +194,8 @@ class AnalysisControllerTest {
         verify(analysisService, times(1))
                 .saveAnalysisToDatabase(eq("현대오토에버"), eq("스마트팩토리"), anyString());
         verify(analysisService, times(1))
-                .saveToRedisCache(eq("현대오토에버"), eq("스마트팩토리"), anyString());
-        verify(analysisService, times(1)).saveHistory(eq(1L), eq(123L));
+                .saveToRedisCache(eq("현대오토에버"), eq("스마트팩토리"), anyString(), eq(123L));
+        verify(historyService, times(1)).saveHistory(eq(1L), eq(123L));
 
         assertThat(emitter).isNotNull();
     }
@@ -225,7 +231,7 @@ class AnalysisControllerTest {
                 .thenReturn(123L);
 
         // when
-        SseEmitter emitter = analysisController.analyzeText(request);
+        SseEmitter emitter = analysisController.analyzeText(authentication, request);
         Thread.sleep(3000);
 
         // then
@@ -258,7 +264,7 @@ class AnalysisControllerTest {
         doReturn(stream4)
                 .when(geminiService).analyzeCompanyText4(anyString(), anyString(), anyString(), anyString());
         // when
-        SseEmitter emitter = analysisController.analyzeText(request);
+        SseEmitter emitter = analysisController.analyzeText(authentication, request);
         Thread.sleep(4000); // 재시도 2번 + 병렬 처리
 
         // then
@@ -299,7 +305,7 @@ class AnalysisControllerTest {
                 .thenReturn(123L);
 
         // when
-        SseEmitter emitter = analysisController.analyzeText(request);
+        SseEmitter emitter = analysisController.analyzeText(authentication, request);
         Thread.sleep(3000);
 
         // then

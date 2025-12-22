@@ -1,4 +1,4 @@
-package com.dongledungle.catching.history.service;
+package com.dongledungle.catching.popular.service;
 
 import com.dongledungle.catching.analysis.entity.Analysis;
 import com.dongledungle.catching.analysis.repository.AnalysisRepository;

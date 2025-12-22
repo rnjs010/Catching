@@ -1,13 +1,16 @@
 package com.dongledungle.catching.analysis.controller;
 
+import com.dongledungle.catching.analysis.dto.AnalysisDetailResponseDto;
 import com.dongledungle.catching.analysis.dto.AnalysisRequestDto;
 import com.dongledungle.catching.analysis.dto.AnalysisResponseDto;
 import com.dongledungle.catching.analysis.entity.Analysis;
 import com.dongledungle.catching.analysis.service.AnalysisService;
+import com.dongledungle.catching.analysis.service.AnalysisService.CacheResult;
 import com.dongledungle.catching.analysis.service.GeminiService;
 import com.dongledungle.catching.auth.entity.User;
 import com.dongledungle.catching.common.response.ApiResponse;
 import com.dongledungle.catching.common.util.JsonParserUtil;
+import com.dongledungle.catching.history.service.HistoryService;
 import com.google.genai.ResponseStream;
 import com.google.genai.types.Candidate;
 import com.google.genai.types.GenerateContentResponse;
@@ -31,18 +34,19 @@ import java.util.function.Supplier;
 
 @Slf4j
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/analysis")
 @RequiredArgsConstructor
 public class AnalysisController {
 
     private final GeminiService geminiService;
     private final AnalysisService analysisService;
+    private final HistoryService historyService;
     private final Gson gson = new Gson();
 
     private static final int MAX_AUTO_RETRIES = 2;
     private static final long RETRY_DELAY_MS = 1000;
 
-    @PostMapping(value = "/analysis/json", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @PostMapping(value = "/json", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter analyzeJson(Authentication authentication, @RequestBody AnalysisRequestDto request) {
         SseEmitter emitter = new SseEmitter(600000L);
         Long userId = Long.parseLong((String) authentication.getPrincipal());
@@ -51,25 +55,33 @@ public class AnalysisController {
         return emitter;
     }
 
-    @PostMapping(value = "/analysis/text", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter analyzeText(@RequestBody AnalysisRequestDto request) {
+    @PostMapping(value = "/text", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter analyzeText(Authentication authentication, @RequestBody AnalysisRequestDto request) {
         SseEmitter emitter = new SseEmitter(600000L);
-        //Long userId = Long.parseLong((String) authentication.getPrincipal());
-        //request.setUserId(userId);
+        Long userId = Long.parseLong((String) authentication.getPrincipal());
+        request.setUserId(userId);
         CompletableFuture.runAsync(() -> processAnalysisWithSSE(request, emitter, false));
         return emitter;
     }
 
-    @PostMapping("/analysis/raw")
+    @GetMapping("/{analysisId}")
+    public ResponseEntity<ApiResponse<AnalysisDetailResponseDto>> getAnalysisDetail(
+            @PathVariable Long analysisId
+    ){
+        AnalysisDetailResponseDto analysis = analysisService.getAnalysisDetail(analysisId);
+        return ResponseEntity.ok(ApiResponse.success("분석 상세", analysis));
+    }
+
+    @PostMapping("/raw")
     public ResponseEntity<ApiResponse<AnalysisResponseDto>> analyzeRaw(@RequestBody AnalysisRequestDto request) {
         log.info("분석 요청: 회사={}, 직무={}, 사용자={}", request.getCompany(), request.getPosition(), request.getUserId());
 
         try {
             // 1. Redis 캐시 확인
-            String cachedResult = checkCache(request);
+            CacheResult cachedResult = checkCache(request);
             if (cachedResult != null) {
                 return ResponseEntity.ok(ApiResponse.success("Redis Hit",
-                        AnalysisResponseDto.success(request.getCompany(), request.getPosition(), cachedResult, "redis")));
+                        AnalysisResponseDto.success(request.getCompany(), request.getPosition(), cachedResult.content(), "redis")));
             }
 
             // 2. DB 확인
@@ -100,9 +112,9 @@ public class AnalysisController {
         try {
             // 1. Redis 캐시 확인
             sendSseEvent(emitter, "status", "캐시 확인 중...");
-            String cachedResult = checkCache(request);
+            CacheResult cachedResult = checkCache(request);
             if (cachedResult != null) {
-                sendCachedResult(emitter, request, cachedResult, 0L, "redis");
+                sendCachedResult(emitter, request, cachedResult.content(), cachedResult.companyPositionId(), "redis");
                 return;
             }
 
@@ -136,9 +148,9 @@ public class AnalysisController {
         sendSseEvent(emitter, "data", content);
 
         if (source.equals("database")) {
-            analysisService.saveToRedisCache(request.getCompany(), request.getPosition(), content);
-            analysisService.saveHistory(request.getUserId(), analysisId);
+            analysisService.saveToRedisCache(request.getCompany(), request.getPosition(), content, analysisId);
         }
+        historyService.saveHistory(request.getUserId(), analysisId);
 
         sendSseEvent(emitter, "complete", "success");
         emitter.complete();
@@ -261,9 +273,9 @@ public class AnalysisController {
 
     // ============ 공통 유틸리티 메서드 ============
 
-    private String checkCache(AnalysisRequestDto request) {
+    private CacheResult checkCache(AnalysisRequestDto request) {
         log.debug("Redis 캐시 확인");
-        String cache = analysisService.getFromRedisCache(request.getCompany(), request.getPosition());
+        CacheResult cache = analysisService.getFromRedisCache(request.getCompany(), request.getPosition());
         return cache;
     }
 
@@ -365,8 +377,8 @@ public class AnalysisController {
 
         long analysisId = analysisService.saveAnalysisToDatabase(
                 request.getCompany(), request.getPosition(), contentToSave);
-        analysisService.saveHistory(request.getUserId(), analysisId);
-        analysisService.saveToRedisCache(request.getCompany(), request.getPosition(), contentToSave);
+        historyService.saveHistory(request.getUserId(), analysisId);
+        analysisService.saveToRedisCache(request.getCompany(), request.getPosition(), contentToSave, analysisId);
     }
 
     /**

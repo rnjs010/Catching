@@ -1,5 +1,6 @@
 package com.dongledungle.catching.history.entity;
 
+import com.dongledungle.catching.analysis.entity.Analysis;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -32,5 +33,7 @@ public class History {
     @Column(name="year_month_week", nullable = false)
     private String yearMonthWeek; //"2025-11-W3" (2025년 11월 3주차)
 
-
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "company_position_id", insertable = false, updatable = false)
+    private Analysis analysis;
 }

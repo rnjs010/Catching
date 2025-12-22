@@ -1,10 +1,13 @@
 package com.dongledungle.catching.analysis.service;
 
+import com.dongledungle.catching.analysis.dto.AnalysisDetailResponseDto;
 import com.dongledungle.catching.analysis.entity.Analysis;
 import com.dongledungle.catching.analysis.repository.AnalysisRepository;
 import com.dongledungle.catching.common.util.WeekUtil;
 import com.dongledungle.catching.history.entity.History;
 import com.dongledungle.catching.history.repository.HistoryRepository;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -13,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
 @Slf4j
@@ -22,24 +26,51 @@ public class AnalysisService {
     private final AnalysisRepository analysisRepository;
     private final HistoryRepository historyRepository;
     private final RedisTemplate<String, String> redisTemplate;
+    private final Gson gson = new Gson();
 
     private static final String REDIS_KEY_PREFIX = "analysis:";
     private static final Duration REDIS_TIL = Duration.ofDays(7); // 일주일 캐시
 
     /**
+     * Redis 캐시 결과를 담는 DTO
+     */
+    public record CacheResult(Long companyPositionId, String content) {}
+
+    /**
      * redis 조회
      */
-    public String getFromRedisCache(String company, String position){
+    public CacheResult getFromRedisCache(String company, String position){
         String key = generateRedisKey(company, position);
-        return redisTemplate.opsForValue().get(key);
+        String cached = redisTemplate.opsForValue().get(key);
+
+        if (cached == null) {
+            return null;
+        }
+
+        try {
+            JsonObject cacheData = gson.fromJson(cached, JsonObject.class);
+            Long companyPositionId = cacheData.get("companyPositionId").getAsLong();
+            String content = cacheData.get("content").getAsString();
+
+            return new CacheResult(companyPositionId, content);
+        } catch (Exception e) {
+            log.error("Redis 캐시 파싱 실패: {}", e.getMessage());
+            return null;
+        }
     }
 
     /**
      * redis 저장
      */
-    public void saveToRedisCache(String company, String position, String content){
+    public void saveToRedisCache(String company, String position, String content, Long companyPositionId){
         String key = generateRedisKey(company, position);
-        redisTemplate.opsForValue().set(key, content, REDIS_TIL);
+
+        // JSON 형태로 ID와 content를 함께 저장
+        JsonObject cacheData = new JsonObject();
+        cacheData.addProperty("companyPositionId", companyPositionId);
+        cacheData.addProperty("content", content);
+
+        redisTemplate.opsForValue().set(key, gson.toJson(cacheData), REDIS_TIL);
     }
 
     /**
@@ -74,23 +105,18 @@ public class AnalysisService {
     }
 
     /**
-     * 사용자 조회 기록 저장
+     * 분석 ID로 Content 조회하기
      */
-    @Transactional
-    public void saveHistory(Long userId, Long companyPositionId){
-        String currentMonthWeek = WeekUtil.getCurrentYearMonthWeek();
+    public AnalysisDetailResponseDto getAnalysisDetail(Long companyPositionId){
+        Analysis analysis = analysisRepository.findById(companyPositionId)
+                .orElseThrow(() -> new NoSuchElementException("분석 정보를 찾을 수 없습니다."));
 
-        // 조회 기록 저장
-        History history = History.builder()
-                .userId(userId)
-                .companyPositionId(companyPositionId)
-                .yearMonthWeek(currentMonthWeek)
-                .createdAt(LocalDateTime.now())
+        return AnalysisDetailResponseDto.builder()
+                .company(analysis.getCompany())
+                .position(analysis.getPosition())
+                .content(analysis.getContent())
+                .createdAt(analysis.getCreatedAt())
                 .build();
-
-        historyRepository.save(history);
-        log.info("History 저장: userId={}, companyPositionId={}, week={}",
-                userId, companyPositionId, currentMonthWeek);
     }
 
     private String generateRedisKey(String company, String position) {
