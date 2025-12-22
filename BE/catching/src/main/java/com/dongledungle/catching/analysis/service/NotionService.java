@@ -19,11 +19,11 @@ import java.util.regex.Pattern;
 @Service
 public class NotionService {
 
-    @Value("${notion.api-key}")
-    private String notionApiKey;
+    @Value("${notion.client-id}")
+    private String notionClientId;
 
-    @Value("${notion.parent-page-id}")
-    private String parentPageId;
+    @Value("${notion.client-secret}")
+    private String notionClientSecret;
 
     @Value("${notion.version}")
     private String notionVersion;
@@ -110,7 +110,7 @@ public class NotionService {
     private String createPage(String title) {
         Map<String, Object> body = new HashMap<>();
         Map<String, Object> parent = new HashMap<>();
-        parent.put("page_id", parentPageId);
+        parent.put("page_id", notionClientSecret);
         body.put("parent", parent);
 
         Map<String, Object> properties = new HashMap<>();
@@ -121,7 +121,7 @@ public class NotionService {
 
         String response = restClient.post()
                 .uri("/pages")
-                .header("Authorization", "Bearer " + notionApiKey)
+                .header("Authorization", "Bearer " + notionClientId)
                 .header("Notion-Version", notionVersion)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(body)
@@ -138,7 +138,7 @@ public class NotionService {
 
         restClient.patch()
                 .uri("/blocks/" + pageId + "/children")
-                .header("Authorization", "Bearer " + notionApiKey)
+                .header("Authorization", "Bearer " + notionClientId)
                 .header("Notion-Version", notionVersion)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(body)
