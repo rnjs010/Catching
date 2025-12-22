@@ -1,6 +1,6 @@
 package com.dongledungle.catching.history.controller;
 
-import com.dongledungle.catching.auth.common.ApiResponse;
+import com.dongledungle.catching.common.response.ApiResponse;
 import com.dongledungle.catching.history.dto.HistoryDto;
 import com.dongledungle.catching.history.service.HistoryService;
 import lombok.RequiredArgsConstructor;
