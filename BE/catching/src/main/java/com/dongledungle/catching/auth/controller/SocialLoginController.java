@@ -180,4 +180,23 @@ public class SocialLoginController {
         }
         return authorizationHeader.substring(7);
     }
+
+    /**
+     * 회원탈퇴 (소프트 삭제)
+     * DELETE /api/auth/withdraw
+     *
+     * @return ApiResponse<String>
+     */
+    @DeleteMapping("/withdraw")
+    public ResponseEntity<ApiResponse<String>> deleteUser(Authentication authentication) {
+        try {
+            Long userId = Long.parseLong((String) authentication.getPrincipal());
+            userService.deleteUser(userId);
+            return ResponseEntity.ok(ApiResponse.success("회원탈퇴 되었습니다."));
+        } catch (Exception e) {
+            log.error("회원탈퇴 실패", e);
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("회원탈퇴에 실패했습니다."));
+        }
+    }
 }
