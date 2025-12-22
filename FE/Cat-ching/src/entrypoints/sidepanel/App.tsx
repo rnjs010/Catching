@@ -12,7 +12,7 @@ const Container = styled.div`
 `;
 
 const ContentWrapper = styled.div`
-  ${tw`w-full max-w-xl flex flex-col flex-1`}
+  ${tw`flex w-full max-w-xl flex-1 pb-16`}
 `;
 
 function App() {
@@ -20,12 +20,14 @@ function App() {
     <Container>
       <GlobalFonts />
 
+      <Header />
+
       <ContentWrapper>
-        <Header />
         {/* <Home /> */}
         <Search />
-        <Footer />
       </ContentWrapper>
+
+      <Footer />
     </Container>
   );
 }
