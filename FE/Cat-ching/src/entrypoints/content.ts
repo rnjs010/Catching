@@ -123,5 +123,45 @@ export default defineContentScript({
         });
       }
     }
+
+    // OCR 크롭 UI 및 선택 모니터링 메시지 리스너
+    browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      if (message.type === "START_SELECTION_MONITOR") {
+        let isMonitoring = true;
+
+        const handleSelectionChange = () => {
+          if (!isMonitoring) return;
+
+          const selectedText = window.getSelection()?.toString().trim() || "";
+          browser.runtime.sendMessage({
+            type: "SELECTION_UPDATE",
+            text: selectedText,
+          });
+        };
+
+        const handleMouseUp = () => {
+          if (!isMonitoring) return;
+
+          const selectedText = window.getSelection()?.toString().trim();
+          if (selectedText) {
+            isMonitoring = false;
+            browser.runtime.sendMessage({
+              type: "SELECTION_COMPLETE",
+            });
+            document.removeEventListener(
+              "selectionchange",
+              handleSelectionChange
+            );
+            document.removeEventListener("mouseup", handleMouseUp);
+          }
+        };
+
+        document.addEventListener("selectionchange", handleSelectionChange);
+        document.addEventListener("mouseup", handleMouseUp);
+
+        sendResponse({ started: true });
+        return true;
+      }
+    });
   },
 });

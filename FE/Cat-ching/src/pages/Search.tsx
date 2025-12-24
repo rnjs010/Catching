@@ -6,6 +6,7 @@ import { useCompanyDetector } from "@/features/scraper/hooks/useCompanyDetector"
 import { useShowCompany } from "@/features/scraper/hooks/useShowCompany";
 import CompanySection from "@/features/scraper/components/CompanySection";
 import JobSection from "@/features/scraper/components/JobSection";
+import { useJobDragStore } from "@/stores/jobStore";
 import { useEffect, useState } from "react";
 
 const PageLayout = styled.div`
@@ -68,6 +69,12 @@ export default function Search() {
   type JobInputMode = "capture" | "drag";
   const [jobMode, setJobMode] = useState<JobInputMode>("capture");
 
+  const { job, reset } = useJobDragStore();
+  useEffect(() => {
+    if (!isAutoDetected) return;
+    reset();
+  }, [isAutoDetected]);
+
   return (
     <PageLayout>
       <ContentArea>
@@ -88,12 +95,15 @@ export default function Search() {
             setJobMode((prev) => (prev === "capture" ? "drag" : "capture"))
           }
           onCaptureClick={() => {
-            // 나중에 OCR / Drag 이벤트 연결
+            // 나중에 OCR 이벤트 연결
           }}
         />
       </ContentArea>
 
-      <SearchButton isActive={!!companyValue} disabled={!!companyValue}>
+      <SearchButton
+        isActive={!!companyValue && !!job}
+        disabled={!!companyValue && !!job}
+      >
         <SearchIcon size={24} color="white" />
         <Text weight="semibold" color="gray10">
           탐색하기
