@@ -66,9 +66,6 @@ export default function Search() {
   };
 
   // 직무 관련
-  type JobInputMode = "capture" | "drag";
-  const [jobMode, setJobMode] = useState<JobInputMode>("capture");
-
   const { job, reset } = useJobDragStore();
   useEffect(() => {
     if (!isAutoDetected) return;
@@ -88,16 +85,7 @@ export default function Search() {
           onSave={saveCompany}
         />
 
-        <JobSection
-          visible={!!companyValue}
-          mode={jobMode}
-          onModeToggle={() =>
-            setJobMode((prev) => (prev === "capture" ? "drag" : "capture"))
-          }
-          onCaptureClick={() => {
-            // 나중에 OCR 이벤트 연결
-          }}
-        />
+        <JobSection visible={!!companyValue} />
       </ContentArea>
 
       <SearchButton

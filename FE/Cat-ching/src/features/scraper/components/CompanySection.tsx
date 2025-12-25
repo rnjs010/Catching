@@ -1,10 +1,10 @@
+import styled from "styled-components";
+import tw from "twin.macro";
 import { Text } from "@/styles/typography";
-import GradientText from "@/components/GradientText";
 import catQLogo from "@/assets/cat_q.png";
 import catFLogo from "@/assets/cat_f.png";
 import { EditableText } from "./EditableText";
-import styled from "styled-components";
-import tw from "twin.macro";
+import GradientText from "@/components/GradientText";
 
 const Container = styled.div<{ lifted: boolean }>`
   ${tw`flex flex-col items-center justify-center text-center transition-transform duration-1000 ease-out`}
@@ -15,10 +15,6 @@ const Container = styled.div<{ lifted: boolean }>`
 const CatImage = styled.img<{ isFound: boolean }>`
   ${tw`h-16 w-16 transition-transform duration-500 ease-in-out mx-auto mt-0 mb-4`}
   transform: rotate(${({ isFound }) => (isFound ? 0 : 15)}deg);
-`;
-
-const Wrapper = styled.div`
-  ${tw`flex flex-col items-center gap-2`}
 `;
 
 interface Props {
@@ -57,31 +53,33 @@ export default function CompanySection({
         {ui.text}
       </Text>
       <CatImage src={ui.image} alt="Cat Logo" isFound={ui.hasCompany} />
-      <Wrapper>
-        <Text variant="xl">어떤 회사를 탐색할까요?</Text>
+      <Text variant="xl" className="mb-2">
+        어떤 회사를 탐색할까요?
+      </Text>
 
-        {companyState === "loading" && (
-          <GradientText className="text-2xl font-semibold">
-            페이지 로딩중...
-          </GradientText>
-        )}
-        {companyState === "analyzing" && (
-          <GradientText className="text-2xl font-semibold">
-            채용 공고 분석 중...
-          </GradientText>
-        )}
-        {isEditableVisible && (
-          <EditableText
-            text={displayText}
-            placeholder="회사 이름"
-            isEditable={isEditing}
-            skipAnimation={!isAutoDetected}
-            onEdit={onEdit}
-            onClose={onClose}
-            onSave={onSave}
-          />
-        )}
-      </Wrapper>
+      {companyState === "loading" && (
+        <GradientText className="text-2xl font-semibold">
+          페이지 로딩중...
+        </GradientText>
+      )}
+
+      {companyState === "analyzing" && (
+        <GradientText className="text-2xl font-semibold">
+          채용 공고 분석 중...
+        </GradientText>
+      )}
+
+      {isEditableVisible && (
+        <EditableText
+          text={displayText}
+          placeholder="회사 이름"
+          isEditable={isEditing}
+          skipAnimation={!isAutoDetected}
+          onEdit={onEdit}
+          onClose={onClose}
+          onSave={onSave}
+        />
+      )}
     </Container>
   );
 }

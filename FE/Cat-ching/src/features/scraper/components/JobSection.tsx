@@ -1,9 +1,10 @@
+import styled from "styled-components";
+import tw from "twin.macro";
 import { Text } from "@/styles/typography";
 import { LuMousePointerClick } from "react-icons/lu";
 import { TbCapture } from "react-icons/tb";
-import styled from "styled-components";
-import tw from "twin.macro";
 import { EditableText } from "./EditableText";
+import GradientText from "@/components/GradientText";
 import { useJobDrag } from "../hooks/useJobDrag";
 import { useJobDragStore } from "@/stores/jobStore";
 import { useState } from "react";
@@ -17,35 +18,60 @@ const Container = styled.div<{ visible: boolean }>`
 `;
 
 const CaptureButton = styled.button`
-  ${tw`w-16 h-16 p-2 my-4 rounded-full shadow-custom flex items-center justify-center text-blue-500 bg-blue-50`}
+  ${tw`w-16 h-16 p-2 mt-1 rounded-full shadow-custom flex items-center justify-center text-blue-500 bg-blue-50`}
 `;
 
 const GrayButton = styled.button`
-  ${tw`px-2 py-1.5 rounded-full bg-gray-100 underline`}
+  ${tw`px-3 py-1.5 mt-4 rounded-full bg-gray-100 underline`}
 `;
 
-export type JobInputMode = "capture" | "drag";
+type JobInputMode = "capture" | "drag";
+type ViewState = "idle" | "dragGuide" | "dragPreview" | "result";
 
-interface Props {
-  visible: boolean;
-  mode: JobInputMode;
-  onModeToggle: () => void;
-  onCaptureClick: () => void;
-}
+const TEXT = {
+  dragGuide: "직무를 드래그해주세요",
+  toDrag: "직무 드래그로 변경",
+  toCapture: "직무 캡쳐로 변경",
+} as const;
 
-export default function JobSection({
-  visible,
-  mode,
-  onModeToggle,
-  onCaptureClick,
-}: Props) {
+export default function JobSection({ visible }: { visible: boolean }) {
+  const [mode, setMode] = useState<JobInputMode>("capture");
+  const toggleInputMode = () => {
+    setMode((prev) => (prev === "capture" ? "drag" : "capture"));
+  };
+
   const { phase, draftText, job, isAutoDetected, setJobManual, reset } =
     useJobDragStore();
   const { startJobDrag, cancelJobDrag } = useJobDrag();
   const [isJobEditing, setIsJobEditing] = useState(false);
 
-  const isDragging = phase === "dragging";
-  const isDone = phase === "done";
+  const getViewState = (): ViewState => {
+    if (phase === "done") return "result";
+    if (phase === "dragging" && draftText) return "dragPreview";
+    if (phase === "dragging") return "dragGuide";
+    return "idle";
+  };
+
+  const viewState = getViewState();
+
+  const handleMainAction = () => {
+    if (mode === "drag") {
+      startJobDrag();
+    } else {
+      // OCR 직무 캡쳐 로직 추가 예정
+    }
+  };
+
+  const handleJobSave = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      reset();
+      return;
+    }
+
+    setJobManual(trimmed);
+    setIsJobEditing(false);
+  };
 
   return (
     <Container visible={visible}>
@@ -53,21 +79,9 @@ export default function JobSection({
         어떤 직무에 지원할 예정인가요?
       </Text>
 
-      {/* 버튼 */}
-      {!isDragging && !isDone && (
+      {viewState === "idle" && (
         <>
-          {/* <Text variant="sm" weight="light" color="blue80">
-            {mode === "capture"
-              ? "(직무를 캡쳐하세요)"
-              : "(직무를 드래그하세요)"}
-          </Text> */}
-
-          <CaptureButton
-            onClick={() => {
-              if (mode === "drag") startJobDrag();
-              else onCaptureClick();
-            }}
-          >
+          <CaptureButton onClick={handleMainAction}>
             {mode === "capture" ? (
               <TbCapture size={28} />
             ) : (
@@ -75,34 +89,31 @@ export default function JobSection({
             )}
           </CaptureButton>
 
-          <GrayButton onClick={onModeToggle}>
+          <GrayButton onClick={toggleInputMode}>
             <Text variant="xs" color="gray80">
-              {mode === "capture" ? "직무 드래그로 변경" : "직무 캡쳐로 변경"}
+              {mode === "capture" ? TEXT.toDrag : TEXT.toCapture}
             </Text>
           </GrayButton>
         </>
       )}
 
-      {/* DRAG 안내 */}
-      {isDragging && !draftText && (
+      {viewState === "dragGuide" && (
         <>
           <GradientText className="text-2xl font-semibold">
-            직무를 드래그해주세요
+            {TEXT.dragGuide}
           </GradientText>
 
           <GrayButton onClick={cancelJobDrag}>취소</GrayButton>
         </>
       )}
 
-      {/* 실시간 텍스트 */}
-      {isDragging && draftText && (
+      {viewState === "dragPreview" && (
         <Text variant="2xl" weight="semibold" color="blue80">
           {draftText}
         </Text>
       )}
 
-      {/* 결과 */}
-      {isDone && (
+      {viewState === "result" && (
         <EditableText
           text={job}
           placeholder="직무 이름"
@@ -110,16 +121,7 @@ export default function JobSection({
           skipAnimation={!isAutoDetected}
           onEdit={() => setIsJobEditing(true)}
           onClose={() => setIsJobEditing(false)}
-          onSave={(value) => {
-            const trimmed = value.trim();
-            if (!trimmed) {
-              reset();
-              return;
-            }
-
-            setJobManual(trimmed);
-            setIsJobEditing(false);
-          }}
+          onSave={handleJobSave}
         />
       )}
     </Container>
