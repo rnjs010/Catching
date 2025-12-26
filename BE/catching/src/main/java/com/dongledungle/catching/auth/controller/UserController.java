@@ -1,10 +1,11 @@
 package com.dongledungle.catching.auth.controller;
 
-import com.dongledungle.catching.auth.common.ApiResponse;
+import com.dongledungle.catching.common.response.ApiResponse;
 import com.dongledungle.catching.auth.entity.User;
 import com.dongledungle.catching.auth.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -33,8 +34,8 @@ public class UserController {
             return ResponseEntity.ok(ApiResponse.success(user));
         } catch (Exception e) {
             log.error("사용자 정보 조회 실패: userId={}", userId, e);
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("사용자 정보를 찾을 수 없습니다."));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(HttpStatus.BAD_REQUEST, "사용자 정보를 찾을 수 없습니다."));
         }
     }
 
@@ -55,8 +56,8 @@ public class UserController {
             return ResponseEntity.ok(ApiResponse.success("사용자 이름이 수정되었습니다."));
         } catch (Exception e) {
             log.error("사용자 이름 수정 실패: userId={}", userId, e);
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("사용자 이름 수정에 실패했습니다."));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(HttpStatus.BAD_REQUEST, "사용자 이름 수정에 실패했습니다."));
         }
     }
 
@@ -74,8 +75,8 @@ public class UserController {
             return ResponseEntity.ok(ApiResponse.success("사용자가 삭제되었습니다."));
         } catch (Exception e) {
             log.error("사용자 삭제 실패: userId={}", userId, e);
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("사용자 삭제에 실패했습니다."));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(HttpStatus.BAD_REQUEST, "사용자 삭제에 실패했습니다."));
         }
     }
 }

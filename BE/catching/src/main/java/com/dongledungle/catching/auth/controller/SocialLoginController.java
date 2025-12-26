@@ -1,6 +1,6 @@
 package com.dongledungle.catching.auth.controller;
 
-import com.dongledungle.catching.auth.common.ApiResponse;
+import com.dongledungle.catching.common.response.ApiResponse;
 import com.dongledungle.catching.auth.dto.oauth.GoogleAccessTokenRequest;
 import com.dongledungle.catching.auth.dto.request.MeRequest;
 import com.dongledungle.catching.auth.dto.response.GoogleUserInfoResponseDto;
@@ -63,8 +63,8 @@ public class SocialLoginController {
             // 신규 회원이면 201 CREATED 반환
             if (isNewUser) {
                 return ResponseEntity
-                        .status(HttpStatus.CREATED) // 201
-                        .body(ApiResponse.success(loginResponse));
+                        .status(HttpStatus.CREATED)
+                        .body(ApiResponse.created("회원가입 및 로그인 성공", loginResponse));
             }
 
             // 기존 회원이면 200 OK 반환
@@ -72,8 +72,8 @@ public class SocialLoginController {
 
         } catch (Exception e) {
             log.error("[AUTH] 구글 Access Token 로그인 실패", e);
-            return ResponseEntity.status(401)
-                    .body(ApiResponse.error("구글 로그인에 실패했습니다: " + e.getMessage()));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error(HttpStatus.UNAUTHORIZED, "구글 로그인에 실패했습니다: " + e.getMessage()));
         }
     }
 
@@ -102,8 +102,8 @@ public class SocialLoginController {
 
         } catch (Exception e) {
             log.error("[AUTH] /me 조회 실패", e);
-            return ResponseEntity.status(401)
-                    .body(ApiResponse.error("인증 정보가 유효하지 않습니다."));
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error(HttpStatus.UNAUTHORIZED, "인증 정보가 유효하지 않습니다."));
         }
     }
 
@@ -119,8 +119,8 @@ public class SocialLoginController {
             return ResponseEntity.ok(ApiResponse.success(updated));
         } catch (Exception e) {
             log.error("사용자 정보 수정 실패", e);
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("사용자 정보 수정에 실패했습니다."));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(HttpStatus.BAD_REQUEST, "사용자 정보 수정에 실패했습니다."));
         }
     }
 
@@ -138,14 +138,14 @@ public class SocialLoginController {
             return ResponseEntity.ok(ApiResponse.success("로그아웃되었습니다."));
         } catch (Exception e) {
             log.error("로그아웃 실패", e);
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("로그아웃에 실패했습니다."));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(HttpStatus.BAD_REQUEST, "로그아웃에 실패했습니다."));
         }
     }
 
     /**
      * Access Token 갱신
-     * POST /api/token/refresh
+     * POST /api/auth/refresh
      *
      * @param refreshToken Refresh Token
      * @return ApiResponse<JwtTokenResponse> (새로운 Access Token)
@@ -166,8 +166,8 @@ public class SocialLoginController {
 
         } catch (Exception e) {
             log.error("Access Token 갱신 실패", e);
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("토큰 갱신에 실패했습니다: " + e.getMessage()));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(HttpStatus.BAD_REQUEST, "토큰 갱신에 실패했습니다: " + e.getMessage()));
         }
     }
 
@@ -195,8 +195,8 @@ public class SocialLoginController {
             return ResponseEntity.ok(ApiResponse.success("회원탈퇴 되었습니다."));
         } catch (Exception e) {
             log.error("회원탈퇴 실패", e);
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("회원탈퇴에 실패했습니다."));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(HttpStatus.BAD_REQUEST, "회원탈퇴에 실패했습니다."));
         }
     }
 }
