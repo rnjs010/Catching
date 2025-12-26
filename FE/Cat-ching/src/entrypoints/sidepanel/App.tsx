@@ -5,6 +5,7 @@ import { GlobalFonts } from "@/styles/fonts";
 import Home from "@/pages/Home";
 import Search from "@/pages/Search";
 import Register from "@/pages/Register";
+import Settings from "@/pages/Settings";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import HistoryDrawer from "@/components/HistoryDrawer";
@@ -33,11 +34,18 @@ function App() {
   // 인증 상태에 따른 초기 페이지 설정
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate("home");
+      if (currentPage !== "home") {
+        navigate("home");
+      }
     } else if (isNewUser) {
-      navigate("register");
-    } else if (currentPage === "home" || currentPage === "register") {
-      navigate("search");
+      if (currentPage !== "register") {
+        navigate("register");
+      }
+    } else {
+      // 인증된 경우 home이나 register에 있으면 search로 이동
+      if (currentPage === "home" || currentPage === "register") {
+        navigate("search");
+      }
     }
   }, [isAuthenticated, isNewUser, currentPage, navigate]);
 
@@ -52,6 +60,7 @@ function App() {
         {currentPage === "home" && <Home />}
         {currentPage === "register" && <Register />}
         {currentPage === "search" && <Search />}
+        {currentPage === "settings" && <Settings />}
 
         <Footer />
       </ContentWrapper>

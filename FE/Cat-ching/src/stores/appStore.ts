@@ -6,10 +6,13 @@ export const useAppStore = create<AppState>((set, get) => ({
   prevPage: null,
 
   navigate: (page: Page) =>
-    set((state) => ({
-      currentPage: page,
-      prevPage: state.currentPage,
-    })),
+    set((state) => {
+      if (state.currentPage === page) return state;
+      return {
+        currentPage: page,
+        prevPage: state.currentPage,
+      };
+    }),
 
   goBack: () =>
     set((state) => ({

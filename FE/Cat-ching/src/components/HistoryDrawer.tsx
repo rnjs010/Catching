@@ -8,6 +8,7 @@ import { FiUser, FiLogOut } from "react-icons/fi";
 import { Text } from "@/styles/typography";
 import PillButton from "./PillButton";
 import { useAuthStore } from "@/stores/authStore";
+import { useAppStore } from "@/stores/appStore";
 
 interface HistoryItem {
   id: string;
@@ -159,6 +160,17 @@ export default function HistoryDrawer({ isOpen, onClose }: HistoryDrawerProps) {
   const [historyItems] = useState<HistoryItem[]>(mockHistoryData);
   const itemsRef = useRef<HTMLDivElement[]>([]);
   const logout = useAuthStore((state) => state.logout);
+  const { navigate } = useAppStore();
+
+  const [popupConfig, setPopupConfig] = useState<{
+    isOpen: boolean;
+    message: string;
+    showCancel?: boolean;
+    onConfirm?: () => void;
+  }>({
+    isOpen: false,
+    message: "",
+  });
 
   useLayoutEffect(() => {
     if (isOpen && itemsRef.current.length > 0) {
@@ -181,7 +193,19 @@ export default function HistoryDrawer({ isOpen, onClose }: HistoryDrawerProps) {
   };
 
   const handleLogout = async () => {
-    await logout();
+    setPopupConfig({
+      isOpen: true,
+      message: "로그아웃 하시겠습니까?",
+      showCancel: true,
+      onConfirm: async () => {
+        await logout();
+        onClose();
+      },
+    });
+  };
+
+  const handleSettingsClick = () => {
+    navigate("settings");
     onClose();
   };
 
@@ -215,7 +239,7 @@ export default function HistoryDrawer({ isOpen, onClose }: HistoryDrawerProps) {
             </Header>
 
             <Content>
-              {historyItems.map((item, index) => (
+              {historyItems.map((item: HistoryItem, index: number) => (
                 <HistoryItemCard
                   key={item.id}
                   ref={setItemRef(index)}
@@ -235,7 +259,7 @@ export default function HistoryDrawer({ isOpen, onClose }: HistoryDrawerProps) {
               <PillButton
                 icon={<FiUser />}
                 borderColor="#6DACFF"
-                onClick={() => console.log("사용자 설정 클릭")}
+                onClick={handleSettingsClick}
               >
                 사용자 설정
               </PillButton>
@@ -251,6 +275,13 @@ export default function HistoryDrawer({ isOpen, onClose }: HistoryDrawerProps) {
           </DrawerContainer>
         </>
       )}
+      <AlertPopup
+        isOpen={popupConfig.isOpen}
+        message={popupConfig.message}
+        showCancel={popupConfig.showCancel}
+        onConfirm={popupConfig.onConfirm}
+        onClose={() => setPopupConfig((prev) => ({ ...prev, isOpen: false }))}
+      />
     </AnimatePresence>
   );
 }

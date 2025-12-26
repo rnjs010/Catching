@@ -53,3 +53,9 @@ export const updateUserInfo = async (name: string) => {
   const response = await api.put("/auth/me", { name });
   return response.data;
 };
+
+// 회원 탈퇴
+export const withdrawAccount = async (): Promise<void> => {
+  await api.delete("/auth/withdraw");
+  await browser.storage.local.remove(["accessToken", "refreshToken"]);
+};

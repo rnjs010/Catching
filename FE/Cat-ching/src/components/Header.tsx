@@ -3,7 +3,7 @@ import tw from "twin.macro";
 import { Text } from "@/styles/typography";
 import { colors } from "@/styles/colors";
 import { RxHamburgerMenu } from "react-icons/rx";
-import { IoBarChartOutline } from "react-icons/io5";
+import { IoBarChartOutline, IoArrowBack } from "react-icons/io5";
 import { useAuthStore } from "@/stores/authStore";
 import { useState } from "react";
 import AlertPopup from "./AlertPopup";
@@ -28,9 +28,14 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const [showAlert, setShowAlert] = useState(false);
 
-  const { navigate } = useAppStore();
+  const { currentPage, navigate, goBack } = useAppStore();
 
   const handleMenuClick = () => {
+    if (currentPage === "settings") {
+      goBack();
+      return;
+    }
+
     if (!isAuthenticated) {
       setShowAlert(true);
     } else {
@@ -55,8 +60,12 @@ export default function Header({ onMenuClick }: HeaderProps) {
   return (
     <>
       <HeaderWrapper>
-        <IconButton onClick={handleMenuClick} aria-label="Open Side Menu">
-          <RxHamburgerMenu size={24} />
+        <IconButton onClick={handleMenuClick} aria-label={currentPage === 'settings' ? 'Back' : 'Open Side Menu'}>
+          {currentPage === "settings" ? (
+            <IoArrowBack size={24} />
+          ) : (
+            <RxHamburgerMenu size={24} />
+          )}
         </IconButton>
         <IconButton onClick={handleHomeClick} aria-label="Go to Home">
           <Text variant="xl" weight="normal">

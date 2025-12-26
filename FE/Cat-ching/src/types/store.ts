@@ -1,5 +1,11 @@
 // 페이지 타입
-export type Page = "home" | "register" | "search";
+export type Page =
+  | "home"
+  | "register"
+  | "search"
+  | "loading"
+  | "analysis"
+  | "settings";
 
 export interface AppState {
   currentPage: Page;

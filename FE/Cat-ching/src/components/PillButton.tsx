@@ -8,9 +8,14 @@ interface PillButtonProps {
   borderColor?: string;
   pressed?: boolean;
   className?: string;
+  disabled?: boolean;
 }
 
-const StyledButton = styled.button<{ $borderColor: string; $pressed: boolean }>`
+const StyledButton = styled.button<{
+  $borderColor: string;
+  $pressed: boolean;
+  $disabled: boolean;
+}>`
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -20,17 +25,17 @@ const StyledButton = styled.button<{ $borderColor: string; $pressed: boolean }>`
   background: white;
   font-size: 0.875rem;
   font-weight: 500;
-  cursor: pointer;
+  cursor: ${(props) => (props.$disabled ? "not-allowed" : "pointer")};
+  opacity: ${(props) => (props.$disabled ? 0.6 : 1)};
   transition: all 0.2s ease;
   outline: none;
+  pointer-events: ${(props) => (props.$disabled ? "none" : "auto")};
 
-  /* 외부 그림자 (기본) */
   box-shadow: ${(props) =>
     props.$pressed
       ? "inset 0 2px 4px rgba(0, 0, 0, 0.1)"
       : "0 2px 8px rgba(0, 0, 0, 0.1)"};
 
-  /* 눌렸을 때 약간 아래로 */
   transform: ${(props) =>
     props.$pressed ? "translateY(1px)" : "translateY(0)"};
 
@@ -62,12 +67,14 @@ export default function PillButton({
   borderColor = "#0065FF",
   pressed = false,
   className = "",
+  disabled = false,
 }: PillButtonProps) {
   return (
     <StyledButton
       $borderColor={borderColor}
       $pressed={pressed}
-      onClick={onClick}
+      $disabled={disabled}
+      onClick={disabled ? undefined : onClick}
       className={className}
     >
       {icon && <IconWrapper>{icon}</IconWrapper>}
