@@ -217,7 +217,7 @@ public class AnalysisController {
             }
 
             // 모든 프롬프트가 성공한 경우에만 결과 결합
-            String fullResponse = String.join("", result1, result2, result3, result4);
+            String fullResponse = String.join("\n\n", result1, result2, result3, result4);
 
             long analysisId = saveAnalysisResult(request, fullResponse, false);
             sendSseEvent(emitter, "data", fullResponse);
