@@ -21,13 +21,13 @@ public class User {
     @Column(name = "user_id")
     private Long userId;
 
-    @Column(name = "google_id", nullable = false, unique = true)
+    @Column(name = "google_id", nullable = false)
     private String googleId;
 
     @Column(name = "user_name", nullable = false)
     private String userName;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String email;
 
     @Builder.Default

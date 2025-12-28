@@ -1,6 +1,8 @@
 package com.dongledungle.catching.auth.jwt.filter;
 
 import com.dongledungle.catching.auth.jwt.JwtTokenProvider;
+import com.dongledungle.catching.common.response.ApiResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
@@ -9,6 +11,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -18,7 +21,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.List;
 
 /**
  * JWT 인증 필터
@@ -30,6 +32,7 @@ import java.util.List;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -64,8 +67,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 log.debug("사용자 인증 성공: userId={}", userId);
             } else {
                 // validateToken이 false 반환 (만료 외 다른 오류)
-                sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED,
-                        "INVALID_TOKEN", "유효하지 않은 토큰입니다.");
+                sendErrorResponse(response, HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다.");
                 return;
             }
 
@@ -73,35 +75,30 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         } catch (ExpiredJwtException e) {
             log.warn("토큰 만료: {}", e.getMessage());
-            sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED,
-                    "TOKEN_EXPIRED", "토큰이 만료되었습니다.");
+            sendErrorResponse(response, HttpStatus.UNAUTHORIZED, "토큰이 만료되었습니다.");
+            return;
 
         } catch (JwtException e) {
             log.warn("유효하지 않은 토큰: {}", e.getMessage());
-            sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED,
-                    "INVALID_TOKEN", "유효하지 않은 토큰입니다.");
+            sendErrorResponse(response, HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다.");
+            return;
 
         } catch (Exception e) {
             log.error("JWT 인증 필터 에러", e);
-            sendErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED,
-                    "AUTH_ERROR", "인증 처리 중 오류가 발생했습니다.");
+            sendErrorResponse(response, HttpStatus.UNAUTHORIZED, "인증 처리 중 오류가 발생했습니다.");
+            return;
         }
     }
 
     /**
-     * 에러 응답
+     * 에러 응답 (공용 ApiResponse 형식)
      */
-    private void sendErrorResponse(HttpServletResponse response, int status,
-                                   String code, String message) throws IOException {
-        response.setStatus(status);
+    private void sendErrorResponse(HttpServletResponse response, HttpStatus httpStatus, String message) throws IOException {
+        response.setStatus(httpStatus.value());
         response.setContentType("application/json;charset=UTF-8");
 
-        String json = String.format(
-                "{\"success\":false,\"message\":\"%s\",\"code\":\"%s\",\"data\":null}",
-                message, code
-        );
-
-        response.getWriter().write(json);
+        ApiResponse<Object> body = ApiResponse.error(httpStatus, message);
+        response.getWriter().write(objectMapper.writeValueAsString(body));
     }
 
     /**
