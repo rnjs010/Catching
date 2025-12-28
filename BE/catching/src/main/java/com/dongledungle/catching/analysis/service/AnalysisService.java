@@ -29,7 +29,7 @@ public class AnalysisService {
     private final Gson gson = new Gson();
 
     private static final String REDIS_KEY_PREFIX = "analysis:";
-//    private static final Duration REDIS_TIL = Duration.ofDays(7); // 일주일 캐시
+    private static final Duration REDIS_TIL = Duration.ofDays(7); // 일주일 캐시
 
     /**
      * Redis 캐시 결과를 담는 DTO
@@ -64,15 +64,13 @@ public class AnalysisService {
      */
     public void saveToRedisCache(String company, String position, String content, Long companyPositionId){
         String key = generateRedisKey(company, position);
-        Duration ttl = calculateTtlUntilWeekEnd();
 
         // JSON 형태로 ID와 content를 함께 저장
         JsonObject cacheData = new JsonObject();
         cacheData.addProperty("companyPositionId", companyPositionId);
         cacheData.addProperty("content", content);
 
-        redisTemplate.opsForValue().set(key, gson.toJson(cacheData), ttl);
-        log.info("Redis 캐시 저장 완료: key={}, TTL={}분", key, ttl.toMinutes());
+        redisTemplate.opsForValue().set(key, gson.toJson(cacheData), REDIS_TIL);
     }
 
     /**
@@ -123,19 +121,5 @@ public class AnalysisService {
 
     private String generateRedisKey(String company, String position) {
         return REDIS_KEY_PREFIX+company+":"+position;
-    }
-
-    private Duration calculateTtlUntilWeekEnd(){
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime weekEnd = WeekUtil.getWeekEnd(now);
-
-        Duration duration = Duration.between(now, weekEnd);
-
-        // 이번 주가 1분도 안남았을 경우 1분은 보장
-        if(duration.toMinutes()<1){
-            return Duration.ofMinutes(1);
-        }
-
-        return duration;
     }
 }

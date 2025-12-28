@@ -146,7 +146,6 @@ public class AnalysisController {
         sendSseEvent(emitter, "source", source);
         sendSseEvent(emitter, "status", source.equals("redis") ? "캐시된 분석 결과를 불러왔습니다" : "저장된 분석 결과를 불러왔습니다");
         sendSseEvent(emitter, "data", content);
-        sendSseEvent(emitter, "analysisId", Long.toString(analysisId));
 
         if (source.equals("database")) {
             analysisService.saveToRedisCache(request.getCompany(), request.getPosition(), content, analysisId);
@@ -217,11 +216,10 @@ public class AnalysisController {
             }
 
             // 모든 프롬프트가 성공한 경우에만 결과 결합
-            String fullResponse = String.join("\n\n", result1, result2, result3, result4);
+            String fullResponse = String.join("", result1, result2, result3, result4);
 
-            long analysisId = saveAnalysisResult(request, fullResponse, false);
+            saveAnalysisResult(request, fullResponse, false);
             sendSseEvent(emitter, "data", fullResponse);
-            sendSseEvent(emitter, "analysisId", Long.toString(analysisId));
             sendSseEvent(emitter, "status", "분석이 완료되었습니다!");
             sendSseEvent(emitter, "complete", "success");
             emitter.complete();
@@ -373,7 +371,7 @@ public class AnalysisController {
     /**
      * 분석 결과 저장 (타입 구분)
      */
-    private long saveAnalysisResult(AnalysisRequestDto request, String content, boolean isJson) {
+    private void saveAnalysisResult(AnalysisRequestDto request, String content, boolean isJson) {
         // JSON이 아닌 경우 JSON 형식으로 래핑
         String contentToSave = isJson ? content : wrapTextAsJson(content);
 
@@ -381,8 +379,6 @@ public class AnalysisController {
                 request.getCompany(), request.getPosition(), contentToSave);
         historyService.saveHistory(request.getUserId(), analysisId);
         analysisService.saveToRedisCache(request.getCompany(), request.getPosition(), contentToSave, analysisId);
-
-        return analysisId;
     }
 
     /**
