@@ -86,8 +86,10 @@ export default function Settings() {
     }
 
     try {
-      const updatedUser = await updateUserInfo(newName);
-      setUser(updatedUser);
+      await updateUserInfo(newName);
+      if (user) {
+        setUser({ ...user, userName: newName });
+      }
       setIsEditing(false);
     } catch (error) {
       setPopupConfig({

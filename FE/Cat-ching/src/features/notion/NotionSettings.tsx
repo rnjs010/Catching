@@ -113,6 +113,8 @@ export default function NotionSettings() {
       const tab = await browser.tabs.create({ url });
       const tabId = tab.id!;
 
+      let timeoutId: any;
+
       // callback URL 감지 및 meta 태그 확인을 위한 리스너
       const handleTabUpdated = async (
         updatedTabId: number,
@@ -159,6 +161,7 @@ export default function NotionSettings() {
       const handleTabRemoved = async (removedTabId: number) => {
         if (removedTabId !== tabId) return;
 
+        if (timeoutId) clearTimeout(timeoutId);
         browser.tabs.onRemoved.removeListener(handleTabRemoved);
         browser.tabs.onUpdated.removeListener(handleTabUpdated);
 
@@ -170,7 +173,7 @@ export default function NotionSettings() {
       browser.tabs.onRemoved.addListener(handleTabRemoved);
 
       // 타임아웃 - 3분동안 연결 못하면 실패처리(리스너 정리)
-      setTimeout(() => {
+      timeoutId = setTimeout(() => {
         browser.tabs.onRemoved.removeListener(handleTabRemoved);
         browser.tabs.onUpdated.removeListener(handleTabUpdated);
         setConnecting(false);

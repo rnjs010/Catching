@@ -34,7 +34,7 @@ export const notionService = {
   // 허용된 페이지 목록 조회
   getNotionPages: async (): Promise<NotionPage[]> => {
     const response = await api.get("/notion/pages");
-    return response.data.pages; // pages 배열 추출
+    return response.data;
   },
 
   // 기본 페이지 변경
