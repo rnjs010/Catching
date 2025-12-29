@@ -1,22 +1,18 @@
-import { useRef, useLayoutEffect, useState } from "react";
+import { useRef, useLayoutEffect, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { gsap } from "gsap";
 import styled from "styled-components";
 import tw from "twin.macro";
 import { IoClose } from "react-icons/io5";
-import { FiUser, FiLogOut } from "react-icons/fi";
+import { FiUser, FiLogOut, FiPlus } from "react-icons/fi";
 import { Text } from "@/styles/typography";
 import PillButton from "./PillButton";
 import { useAuthStore } from "@/stores/authStore";
 import { useAppStore } from "@/stores/appStore";
-
-interface HistoryItem {
-  id: string;
-  company: string;
-  position: string;
-  date: string;
-  time: string;
-}
+import { historyService } from "@/services/historyService";
+import { HistoryItemResponse } from "@/types/history";
+import AlertPopup from "./AlertPopup";
+import { colors } from "@/styles/colors";
 
 interface HistoryDrawerProps {
   isOpen: boolean;
@@ -60,7 +56,7 @@ const CompanyName = styled.div`
 
 const Position = styled.div`
   ${tw`text-sm mb-2`}
-  color: #0065FF;
+  color: #0065ff;
 `;
 
 const DateTime = styled.div`
@@ -68,96 +64,20 @@ const DateTime = styled.div`
   color: #666;
 `;
 
-// 임시 히스토리 데이터
-const mockHistoryData: HistoryItem[] = [
-  {
-    id: "1",
-    company: "현대오토에버",
-    position: "MES 시스템 개발",
-    date: "2025-11-17",
-    time: "4:41 PM",
-  },
-  {
-    id: "2",
-    company: "현대오토에버",
-    position: "Backend Developer",
-    date: "2025-11-17",
-    time: "4:41 PM",
-  },
-  {
-    id: "3",
-    company: "현대오토에버",
-    position: "Backend Developer",
-    date: "2025-11-10",
-    time: "1:01 PM",
-  },
-  {
-    id: "4",
-    company: "현대오토에버",
-    position: "Backend Developer",
-    date: "2025-11-09",
-    time: "1:00 PM",
-  },
-  {
-    id: "5",
-    company: "현대오토에버",
-    position: "MES 시스템 개발",
-    date: "2025-11-17",
-    time: "4:41 PM",
-  },
-  {
-    id: "6",
-    company: "현대오토에버",
-    position: "Backend Developer",
-    date: "2025-11-17",
-    time: "4:41 PM",
-  },
-  {
-    id: "7",
-    company: "현대오토에버",
-    position: "Backend Developer",
-    date: "2025-11-10",
-    time: "1:01 PM",
-  },
-  {
-    id: "8",
-    company: "현대오토에버",
-    position: "Backend Developer",
-    date: "2025-11-09",
-    time: "1:00 PM",
-  },
-  {
-    id: "9",
-    company: "현대오토에버",
-    position: "MES 시스템 개발",
-    date: "2025-11-17",
-    time: "4:41 PM",
-  },
-  {
-    id: "10",
-    company: "현대오토에버",
-    position: "Backend Developer",
-    date: "2025-11-17",
-    time: "4:41 PM",
-  },
-  {
-    id: "11",
-    company: "현대오토에버",
-    position: "Backend Developer",
-    date: "2025-11-10",
-    time: "1:01 PM",
-  },
-  {
-    id: "12",
-    company: "현대오토에버",
-    position: "Backend Developer",
-    date: "2025-11-09",
-    time: "1:00 PM",
-  },
-];
+const LoadMoreButton = styled.button`
+  ${tw`w-full py-3 mt-2 mb-4 flex items-center justify-center gap-2 rounded-xl border border-dashed text-sm transition-all`}
+  border-color: ${colors.gray30};
+  color: ${colors.gray50};
+  &:hover {
+    background-color: ${colors.gray10};
+    border-color: ${colors.blue80};
+    color: ${colors.blue80};
+  }
+`;
 
 export default function HistoryDrawer({ isOpen, onClose }: HistoryDrawerProps) {
-  const [historyItems] = useState<HistoryItem[]>(mockHistoryData);
+  const [allHistory, setAllHistory] = useState<HistoryItemResponse[]>([]);
+  const [visibleCount, setVisibleCount] = useState(10);
   const itemsRef = useRef<HTMLDivElement[]>([]);
   const logout = useAuthStore((state) => state.logout);
   const { navigate } = useAppStore();
@@ -172,21 +92,54 @@ export default function HistoryDrawer({ isOpen, onClose }: HistoryDrawerProps) {
     message: "",
   });
 
-  useLayoutEffect(() => {
-    if (isOpen && itemsRef.current.length > 0) {
-      gsap.fromTo(
-        itemsRef.current,
-        { x: -20, opacity: 0 },
-        {
-          x: 0,
-          opacity: 1,
-          duration: 0.3,
-          stagger: 0.05,
-          ease: "power2.out",
-        }
-      );
+  const fetchHistory = async () => {
+    try {
+      const data = await historyService.getHistoryList();
+      if (Array.isArray(data)) {
+        setAllHistory(data);
+      }
+    } catch (error) {
+      console.error("History fetch failed:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchHistory();
+      setVisibleCount(10); // 열 때마다 초기화
     }
   }, [isOpen]);
+
+  const prevCountRef = useRef(0);
+
+  useLayoutEffect(() => {
+    if (isOpen && itemsRef.current.length > 0) {
+      const newItems = itemsRef.current.slice(
+        prevCountRef.current,
+        visibleCount
+      );
+
+      if (newItems.length > 0) {
+        gsap.fromTo(
+          newItems,
+          { x: -20, opacity: 0 },
+          {
+            x: 0,
+            opacity: 1,
+            duration: 0.3,
+            stagger: 0.05,
+            ease: "power2.out",
+            overwrite: true,
+          }
+        );
+      }
+      prevCountRef.current = visibleCount;
+    }
+
+    if (!isOpen) {
+      prevCountRef.current = 0;
+    }
+  }, [isOpen, visibleCount, allHistory]);
 
   const setItemRef = (index: number) => (el: HTMLDivElement | null) => {
     if (el) itemsRef.current[index] = el;
@@ -209,21 +162,55 @@ export default function HistoryDrawer({ isOpen, onClose }: HistoryDrawerProps) {
     onClose();
   };
 
+  const formatDateTime = (isoString: string) => {
+    const dateObj = new Date(isoString);
+    const date = dateObj.toLocaleDateString("ko-KR", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+    const time = dateObj.toLocaleTimeString("ko-KR", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+    return { date, time };
+  };
+
+  const visibleItems = allHistory.slice(0, visibleCount);
+  const hasMore = allHistory.length > visibleCount;
+
+  const handleLoadMore = () => {
+    setVisibleCount((prev) => prev + 10);
+  };
+
+  const handleItemClick = async (companyPositionId: number) => {
+    try {
+      const analysisData = await historyService.getHistoryAnalysis(
+        companyPositionId
+      );
+      console.log("Analysis Result:", analysisData);
+    } catch (error) {
+      console.error("Failed to fetch analysis:", error);
+    }
+  };
+
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Overlay */}
+    <>
+      <AnimatePresence>
+        {isOpen && (
           <Overlay
+            key="drawer-overlay"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={onClose}
           />
-
-          {/* Drawer */}
+        )}
+        {isOpen && (
           <DrawerContainer
+            key="drawer-container"
             initial={{ x: "-100%" }}
             animate={{ x: 0 }}
             exit={{ x: "-100%" }}
@@ -239,20 +226,36 @@ export default function HistoryDrawer({ isOpen, onClose }: HistoryDrawerProps) {
             </Header>
 
             <Content>
-              {historyItems.map((item: HistoryItem, index: number) => (
-                <HistoryItemCard
-                  key={item.id}
-                  ref={setItemRef(index)}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <CompanyName>{item.company}</CompanyName>
-                  <Position>{item.position}</Position>
-                  <DateTime>
-                    {item.date} {item.time}
-                  </DateTime>
-                </HistoryItemCard>
-              ))}
+              {visibleItems.length > 0 ? (
+                visibleItems.map((item, index) => {
+                  const { date, time } = formatDateTime(item.createdAt);
+                  return (
+                    <HistoryItemCard
+                      key={item.historyId}
+                      ref={setItemRef(index)}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => handleItemClick(item.companyPositionId)}
+                    >
+                      <CompanyName>{item.company}</CompanyName>
+                      <Position>{item.position}</Position>
+                      <DateTime>
+                        {date} {time}
+                      </DateTime>
+                    </HistoryItemCard>
+                  );
+                })
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full opacity-40">
+                  <Text variant="sm">기록이 없습니다.</Text>
+                </div>
+              )}
+
+              {hasMore && (
+                <LoadMoreButton onClick={handleLoadMore}>
+                  <FiPlus /> 더보기
+                </LoadMoreButton>
+              )}
             </Content>
 
             <Footer>
@@ -273,8 +276,8 @@ export default function HistoryDrawer({ isOpen, onClose }: HistoryDrawerProps) {
               </PillButton>
             </Footer>
           </DrawerContainer>
-        </>
-      )}
+        )}
+      </AnimatePresence>
       <AlertPopup
         isOpen={popupConfig.isOpen}
         message={popupConfig.message}
@@ -282,6 +285,6 @@ export default function HistoryDrawer({ isOpen, onClose }: HistoryDrawerProps) {
         onConfirm={popupConfig.onConfirm}
         onClose={() => setPopupConfig((prev) => ({ ...prev, isOpen: false }))}
       />
-    </AnimatePresence>
+    </>
   );
 }
