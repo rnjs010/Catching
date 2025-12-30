@@ -19,8 +19,5 @@ export const useJobDrag = () => {
     }
   };
 
-  return {
-    startJobDrag,
-    cancelJobDrag: reset,
-  };
+  return { startJobDrag };
 };

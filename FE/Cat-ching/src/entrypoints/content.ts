@@ -1,4 +1,5 @@
 import { extractCompany } from "@/features/scraper/services/companyService";
+import { showCropOverlay } from "@/features/scraper/services/showCropOverlay";
 
 export default defineContentScript({
   matches: ["<all_urls>"],
@@ -126,6 +127,17 @@ export default defineContentScript({
 
     // OCR 크롭 UI 및 선택 모니터링 메시지 리스너
     browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      if (message.type === "START_CROP") {
+        showCropOverlay(message.screenshot)
+          .then((croppedImage: string) => {
+            sendResponse({ croppedImage });
+          })
+          .catch(() => {
+            sendResponse({ croppedImage: null });
+          });
+        return true; // 비동기 응답
+      }
+
       if (message.type === "START_SELECTION_MONITOR") {
         let isMonitoring = true;
 

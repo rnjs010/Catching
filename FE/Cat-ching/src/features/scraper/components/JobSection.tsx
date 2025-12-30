@@ -6,6 +6,7 @@ import { TbCapture } from "react-icons/tb";
 import { EditableText } from "./EditableText";
 import GradientText from "@/components/GradientText";
 import { useJobDrag } from "../hooks/useJobDrag";
+import { useJobOCR } from "../hooks/useJobOCR";
 import { useJobDragStore } from "@/stores/jobStore";
 import { useState } from "react";
 
@@ -30,6 +31,8 @@ type ViewState = "idle" | "dragGuide" | "dragPreview" | "result";
 
 const TEXT = {
   dragGuide: "직무를 드래그해주세요",
+  ocrGuide: "캡쳐할 영역을 선택해주세요",
+  ocrProcessing: "텍스트 추출 중...",
   toDrag: "직무 드래그로 변경",
   toCapture: "직무 캡쳐로 변경",
 } as const;
@@ -40,15 +43,27 @@ export default function JobSection({ visible }: { visible: boolean }) {
     setMode((prev) => (prev === "capture" ? "drag" : "capture"));
   };
 
-  const { phase, draftText, job, isAutoDetected, setJobManual, reset } =
-    useJobDragStore();
-  const { startJobDrag, cancelJobDrag } = useJobDrag();
+  const {
+    phase,
+    draftText,
+    job,
+    isProcessing,
+    isAutoDetected,
+    setJobManual,
+    reset,
+  } = useJobDragStore();
+  const { startJobDrag } = useJobDrag();
   const [isJobEditing, setIsJobEditing] = useState(false);
+
+  const { startJobOCR } = useJobOCR();
 
   const getViewState = (): ViewState => {
     if (phase === "done") return "result";
-    if (phase === "dragging" && draftText) return "dragPreview";
-    if (phase === "dragging") return "dragGuide";
+    if (phase === "dragging") {
+      if (draftText) return "dragPreview";
+      if (isProcessing) return "dragPreview";
+      return "dragGuide";
+    }
     return "idle";
   };
 
@@ -58,7 +73,7 @@ export default function JobSection({ visible }: { visible: boolean }) {
     if (mode === "drag") {
       startJobDrag();
     } else {
-      // OCR 직무 캡쳐 로직 추가 예정
+      startJobOCR();
     }
   };
 
@@ -100,18 +115,23 @@ export default function JobSection({ visible }: { visible: boolean }) {
       {viewState === "dragGuide" && (
         <>
           <GradientText className="text-2xl font-semibold">
-            {TEXT.dragGuide}
+            {mode === "capture" ? TEXT.ocrGuide : TEXT.dragGuide}
           </GradientText>
 
-          <GrayButton onClick={cancelJobDrag}>취소</GrayButton>
+          <GrayButton onClick={reset}>취소</GrayButton>
         </>
       )}
 
-      {viewState === "dragPreview" && (
-        <Text variant="2xl" weight="semibold" color="blue80">
-          {draftText}
-        </Text>
-      )}
+      {viewState === "dragPreview" &&
+        (mode === "capture" ? (
+          <GradientText className="text-2xl font-semibold">
+            {TEXT.ocrProcessing}
+          </GradientText>
+        ) : (
+          <Text variant="2xl" weight="semibold" color="blue80">
+            {draftText}
+          </Text>
+        ))}
 
       {viewState === "result" && (
         <EditableText

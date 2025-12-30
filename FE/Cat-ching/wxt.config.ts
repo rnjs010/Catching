@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react";
 
 // See https://wxt.dev/api/config.html
 export default defineConfig({
-  srcDir: 'src',
+  srcDir: "src",
   modules: [], //'@wxt-dev/module-react'],
   manifest: {
     icons: {
@@ -23,10 +23,14 @@ export default defineConfig({
       },
       default_title: "Cat-ching",
     },
-    name: 'Cat-ching',
-    description: 'AI 기반 취업 준비 지원 서비스',
-    version: '0.0.1',
-    host_permissions: ['https://*/*'],
+    name: "Cat-ching",
+    description: "AI 기반 취업 준비 지원 서비스",
+    version: "0.0.1",
+    host_permissions: ["<all_urls>"],
+    content_security_policy: {
+      extension_pages:
+        "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';",
+    },
   },
   vite: () => ({
     plugins: [
