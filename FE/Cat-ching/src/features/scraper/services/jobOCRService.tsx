@@ -5,11 +5,11 @@ type CropResultMessage = {
 };
 
 export const detectJobOCR = () => {
+  // @ts-ignore: WXT global browser object
+  const browserAPI = typeof browser !== "undefined" ? browser : chrome;
+
   const startOCRCapture = async (onOCRStart?: () => void): Promise<string> => {
     try {
-      // @ts-ignore: WXT global browser object
-      const browserAPI = typeof browser !== "undefined" ? browser : chrome;
-
       // 1. 현재 화면 캡쳐
       const screenshot = await browserAPI.tabs.captureVisibleTab(undefined, {
         format: "png",
@@ -67,5 +67,16 @@ export const detectJobOCR = () => {
     }
   };
 
-  return { startOCRCapture };
+  const cancelOCRCapture = () => {
+    browserAPI.tabs
+      .query({ active: true, currentWindow: true })
+      .then((tabs: any[]) => {
+        const tab = tabs[0];
+        if (!tab?.id) return;
+
+        browserAPI.tabs.sendMessage(tab.id, { type: "CANCEL_CROP" });
+      });
+  };
+
+  return { startOCRCapture, cancelOCRCapture };
 };

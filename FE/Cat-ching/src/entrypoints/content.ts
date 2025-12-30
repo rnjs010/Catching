@@ -126,16 +126,28 @@ export default defineContentScript({
     }
 
     // OCR 크롭 UI 및 선택 모니터링 메시지 리스너
+    let cancelCropOverlay: (() => void) | null = null;
+
     browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message.type === "START_CROP") {
-        showCropOverlay(message.screenshot)
+        const { promise, cancel } = showCropOverlay(message.screenshot);
+        cancelCropOverlay = cancel;
+        promise
           .then((croppedImage: string) => {
+            cancelCropOverlay = null;
             sendResponse({ croppedImage });
           })
           .catch(() => {
+            cancelCropOverlay = null;
             sendResponse({ croppedImage: null });
           });
         return true; // 비동기 응답
+      }
+
+      if (message.type === "CANCEL_CROP") {
+        console.log("Crop cancelled via message");
+        cancelCropOverlay?.();
+        cancelCropOverlay = null;
       }
 
       if (message.type === "START_SELECTION_MONITOR") {

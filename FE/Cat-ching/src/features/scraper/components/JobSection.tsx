@@ -9,7 +9,7 @@ import { JobInputMode, useJobViewState } from "../hooks/useJobViewState";
 import { useJobDrag } from "../hooks/useJobDrag";
 import { useJobOCR } from "../hooks/useJobOCR";
 import { useJobInputStore } from "@/stores/jobStore";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const Container = styled.div<{ visible: boolean }>`
   ${({ visible }) =>
@@ -44,7 +44,7 @@ export default function JobSection({ visible }: { visible: boolean }) {
   const { previewText, job, isAutoDetected, setJobManual, reset } =
     useJobInputStore();
   const { startJobDrag } = useJobDrag();
-  const { startJobOCR } = useJobOCR();
+  const { startJobOCR, cancelJobOCR } = useJobOCR();
 
   const viewState = useJobViewState(mode);
   const [isJobEditing, setIsJobEditing] = useState(false);
@@ -62,6 +62,13 @@ export default function JobSection({ visible }: { visible: boolean }) {
 
     setJobManual(trimmed);
     setIsJobEditing(false);
+  };
+
+  const handleCancel = () => {
+    reset();
+    if (mode === "capture") {
+      cancelJobOCR();
+    }
   };
 
   return (
@@ -94,7 +101,7 @@ export default function JobSection({ visible }: { visible: boolean }) {
             {mode === "capture" ? TEXT.ocrGuide : TEXT.dragGuide}
           </GradientText>
 
-          <GrayButton onClick={reset}>취소</GrayButton>
+          <GrayButton onClick={handleCancel}>취소</GrayButton>
         </>
       )}
 

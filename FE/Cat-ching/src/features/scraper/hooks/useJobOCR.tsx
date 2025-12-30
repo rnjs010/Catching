@@ -3,7 +3,7 @@ import { detectJobOCR } from "../services/jobOCRService";
 
 export const useJobOCR = () => {
   const { start, finishOCR, reset, setProcessing } = useJobInputStore();
-  const { startOCRCapture } = detectJobOCR();
+  const { startOCRCapture, cancelOCRCapture } = detectJobOCR();
 
   const startJobOCR = async () => {
     start();
@@ -24,5 +24,9 @@ export const useJobOCR = () => {
     }
   };
 
-  return { startJobOCR };
+  const cancelJobOCR = () => {
+    cancelOCRCapture();
+  };
+
+  return { startJobOCR, cancelJobOCR };
 };

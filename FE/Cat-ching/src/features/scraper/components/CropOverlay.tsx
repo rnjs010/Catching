@@ -16,6 +16,7 @@ export const CropOverlay: React.FC<Props> = ({
   const [start, setStart] = useState<Point | null>(null);
   const [end, setEnd] = useState<Point | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   /* ESC 취소 */
   useEffect(() => {
@@ -60,10 +61,14 @@ export const CropOverlay: React.FC<Props> = ({
     const width = Math.abs(end.x - start.x);
     const height = Math.abs(end.y - start.y);
 
+    // 너무 작은 영역 선택 시 무시
     if (width < 20 || height < 20) {
+      setError("영역이 너무 작아요. 다시 선택해주세요.");
       setStart(null);
       setEnd(null);
       setIsDrawing(false);
+
+      setTimeout(() => setError(null), 2000);
       return;
     }
 
@@ -116,7 +121,7 @@ export const CropOverlay: React.FC<Props> = ({
           style={{
             position: "absolute",
             inset: 0,
-            background: "rgba(0,0,0,0.6)",
+            background: "rgba(0, 0, 0, 0.618)",
           }}
         />
       )}
@@ -145,17 +150,36 @@ export const CropOverlay: React.FC<Props> = ({
           top: 16,
           left: "50%",
           transform: "translateX(-50%)",
-          background: "rgba(0,0,0,0.85)",
-          color: "#fff",
+          background: "#B3D4FF",
           padding: "10px 20px",
           borderRadius: 8,
           fontSize: 14,
-          fontWeight: 500,
           pointerEvents: "none",
         }}
       >
         드래그해서 OCR할 영역을 선택하세요 (ESC: 취소)
       </div>
+
+      {/* 에러 메시지 */}
+      {error && (
+        <div
+          style={{
+            position: "absolute",
+            top: 60,
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "rgba(239,68,68,0.9)",
+            color: "#fff",
+            padding: "6px 14px",
+            borderRadius: 8,
+            fontSize: 13,
+            pointerEvents: "none",
+            transition: "opacity 0.2s",
+          }}
+        >
+          {error}
+        </div>
+      )}
     </div>
   );
 };
