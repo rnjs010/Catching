@@ -1,8 +1,8 @@
-import { useJobDragStore } from "@/stores/jobStore";
+import { useJobInputStore } from "@/stores/jobStore";
 import { detectJobDrag } from "../services/jobDragService";
 
 export const useJobDrag = () => {
-  const { start, update, finish, reset } = useJobDragStore();
+  const { start, updatePreview, finishDrag, reset } = useJobInputStore();
   const { startSelectionMonitor } = detectJobDrag();
 
   const startJobDrag = async () => {
@@ -10,10 +10,10 @@ export const useJobDrag = () => {
 
     try {
       await startSelectionMonitor((text) => {
-        update(text); // 실시간 반영
+        updatePreview(text); // 실시간 반영
       });
 
-      finish(); // mouseup 시
+      finishDrag(); // mouseup 시
     } catch {
       reset(); // 30초 타임아웃
     }

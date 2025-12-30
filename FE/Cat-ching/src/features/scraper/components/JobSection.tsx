@@ -5,9 +5,10 @@ import { LuMousePointerClick } from "react-icons/lu";
 import { TbCapture } from "react-icons/tb";
 import { EditableText } from "./EditableText";
 import GradientText from "@/components/GradientText";
+import { JobInputMode, useJobViewState } from "../hooks/useJobViewState";
 import { useJobDrag } from "../hooks/useJobDrag";
 import { useJobOCR } from "../hooks/useJobOCR";
-import { useJobDragStore } from "@/stores/jobStore";
+import { useJobInputStore } from "@/stores/jobStore";
 import { useState } from "react";
 
 const Container = styled.div<{ visible: boolean }>`
@@ -26,9 +27,6 @@ const GrayButton = styled.button`
   ${tw`px-3 py-1.5 mt-4 rounded-full bg-gray-100 underline`}
 `;
 
-type JobInputMode = "capture" | "drag";
-type ViewState = "idle" | "dragGuide" | "dragPreview" | "result";
-
 const TEXT = {
   dragGuide: "직무를 드래그해주세요",
   ocrGuide: "캡쳐할 영역을 선택해주세요",
@@ -43,38 +41,16 @@ export default function JobSection({ visible }: { visible: boolean }) {
     setMode((prev) => (prev === "capture" ? "drag" : "capture"));
   };
 
-  const {
-    phase,
-    draftText,
-    job,
-    isProcessing,
-    isAutoDetected,
-    setJobManual,
-    reset,
-  } = useJobDragStore();
+  const { previewText, job, isAutoDetected, setJobManual, reset } =
+    useJobInputStore();
   const { startJobDrag } = useJobDrag();
-  const [isJobEditing, setIsJobEditing] = useState(false);
-
   const { startJobOCR } = useJobOCR();
 
-  const getViewState = (): ViewState => {
-    if (phase === "done") return "result";
-    if (phase === "dragging") {
-      if (draftText) return "dragPreview";
-      if (isProcessing) return "dragPreview";
-      return "dragGuide";
-    }
-    return "idle";
-  };
+  const viewState = useJobViewState(mode);
+  const [isJobEditing, setIsJobEditing] = useState(false);
 
-  const viewState = getViewState();
-
-  const handleMainAction = () => {
-    if (mode === "drag") {
-      startJobDrag();
-    } else {
-      startJobOCR();
-    }
+  const startJobInput = () => {
+    mode === "drag" ? startJobDrag() : startJobOCR();
   };
 
   const handleJobSave = (value: string) => {
@@ -96,7 +72,7 @@ export default function JobSection({ visible }: { visible: boolean }) {
 
       {viewState === "idle" && (
         <>
-          <CaptureButton onClick={handleMainAction}>
+          <CaptureButton onClick={startJobInput}>
             {mode === "capture" ? (
               <TbCapture size={28} />
             ) : (
@@ -112,7 +88,7 @@ export default function JobSection({ visible }: { visible: boolean }) {
         </>
       )}
 
-      {viewState === "dragGuide" && (
+      {viewState === "selectGuide" && (
         <>
           <GradientText className="text-2xl font-semibold">
             {mode === "capture" ? TEXT.ocrGuide : TEXT.dragGuide}
@@ -122,16 +98,17 @@ export default function JobSection({ visible }: { visible: boolean }) {
         </>
       )}
 
-      {viewState === "dragPreview" &&
-        (mode === "capture" ? (
-          <GradientText className="text-2xl font-semibold">
-            {TEXT.ocrProcessing}
-          </GradientText>
-        ) : (
-          <Text variant="2xl" weight="semibold" color="blue80">
-            {draftText}
-          </Text>
-        ))}
+      {viewState === "dragPreview" && (
+        <Text variant="2xl" weight="semibold" color="blue80">
+          {previewText}
+        </Text>
+      )}
+
+      {viewState === "ocrProcessing" && (
+        <GradientText className="text-2xl font-semibold">
+          {TEXT.ocrProcessing}
+        </GradientText>
+      )}
 
       {viewState === "result" && (
         <EditableText

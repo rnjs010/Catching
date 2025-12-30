@@ -1,42 +1,42 @@
 import { create } from "zustand";
 
-type JobDragPhase = "idle" | "dragging" | "done";
+type JobInputPhase = "idle" | "selecting" | "done";
 
-interface JobDragState {
-  phase: JobDragPhase;
-  draftText: string; // 실시간 텍스트
+interface JobInputState {
+  phase: JobInputPhase;
   job: string | null; // 확정된 직무
-  isProcessing: boolean;
+  previewText: string; // 실시간 텍스트 (drag)
+  isProcessing: boolean; // OCR 분석 중 여부
   isAutoDetected: boolean;
 
   start: () => void;
-  update: (text: string) => void;
-  setProcessing: (value: boolean) => void;
+  updatePreview: (text: string) => void; // drag
+  setProcessing: (value: boolean) => void; // OCR
 
-  finish: () => void;
+  finishDrag: () => void;
   finishOCR: (text: string) => void;
 
   setJobManual: (text: string) => void;
   reset: () => void;
 }
 
-export const useJobDragStore = create<JobDragState>((set) => ({
+export const useJobInputStore = create<JobInputState>((set) => ({
   phase: "idle",
-  draftText: "",
   job: null,
+  previewText: "",
   isProcessing: false,
   isAutoDetected: false,
 
   start: () =>
     set({
-      phase: "dragging",
-      draftText: "",
+      phase: "selecting",
+      previewText: "",
       isProcessing: false,
     }),
 
-  update: (text) =>
+  updatePreview: (text) =>
     set({
-      draftText: text,
+      previewText: text,
     }),
 
   setProcessing: (value: boolean) =>
@@ -44,10 +44,10 @@ export const useJobDragStore = create<JobDragState>((set) => ({
       isProcessing: value,
     }),
 
-  finish: () =>
+  finishDrag: () =>
     set((state) => ({
-      phase: state.draftText ? "done" : "idle",
-      job: state.draftText || null,
+      phase: state.previewText ? "done" : "idle",
+      job: state.previewText || null,
       isAutoDetected: true,
       isProcessing: false,
     })),
@@ -56,23 +56,23 @@ export const useJobDragStore = create<JobDragState>((set) => ({
     set({
       phase: "done",
       job: text,
-      draftText: "",
+      previewText: "",
       isAutoDetected: true,
       isProcessing: false,
     }),
 
   setJobManual: (text) =>
     set({
+      phase: "done",
       job: text,
       isAutoDetected: false,
-      phase: "done",
     }),
 
   reset: () =>
     set({
       phase: "idle",
-      draftText: "",
       job: null,
+      previewText: "",
       isProcessing: false,
       isAutoDetected: false,
     }),

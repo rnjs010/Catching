@@ -6,8 +6,8 @@ import { useCompanyDetector } from "@/features/scraper/hooks/useCompanyDetector"
 import { useShowCompany } from "@/features/scraper/hooks/useShowCompany";
 import CompanySection from "@/features/scraper/components/CompanySection";
 import JobSection from "@/features/scraper/components/JobSection";
-import { useJobDragStore } from "@/stores/jobStore";
 import { useEffect, useState } from "react";
+import { useJobInputStore } from "@/stores/jobStore";
 
 const PageLayout = styled.div`
   ${tw`relative flex flex-col flex-1 w-full items-center`}
@@ -66,7 +66,7 @@ export default function Search() {
   };
 
   // 직무 관련
-  const { job, reset } = useJobDragStore();
+  const { job, reset } = useJobInputStore();
   useEffect(() => {
     if (!isAutoDetected) return;
     reset();

@@ -1,8 +1,8 @@
-import { useJobDragStore } from "@/stores/jobStore";
+import { useJobInputStore } from "@/stores/jobStore";
 import { detectJobOCR } from "../services/jobOCRService";
 
 export const useJobOCR = () => {
-  const { start, finishOCR, reset, setProcessing } = useJobDragStore();
+  const { start, finishOCR, reset, setProcessing } = useJobInputStore();
   const { startOCRCapture } = detectJobOCR();
 
   const startJobOCR = async () => {
