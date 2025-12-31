@@ -6,6 +6,7 @@ import Home from "@/pages/Home";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Search from "@/pages/Search";
+import { useEffect } from "react";
 
 const Container = styled.div`
   ${tw`w-full px-2 py-1 min-h-screen flex flex-col justify-between items-center`}
@@ -16,6 +17,15 @@ const ContentWrapper = styled.div`
 `;
 
 function App() {
+  useEffect(() => {
+    const port = browser.runtime.connect({ name: "sidepanel" });
+
+    return () => {
+      console.log("sidepanel disconnected");
+      port.disconnect();
+    };
+  }, []);
+
   return (
     <Container>
       <GlobalFonts />
