@@ -5,7 +5,7 @@ import { GoMail } from "react-icons/go";
 import { CiGlobe, CiStar } from "react-icons/ci";
 
 export const FooterWrapper = styled.div`
-  ${tw`w-full flex justify-between px-2 py-4 sticky bottom-0 z-10 border-t`}
+  ${tw`flex justify-between px-2 py-4 left-2 right-2 fixed bottom-0 z-10 border-t`}
   background-color: ${colors.gray10};
 `;
 

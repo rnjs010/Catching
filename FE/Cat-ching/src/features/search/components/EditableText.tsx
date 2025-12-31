@@ -1,154 +1,174 @@
-import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent } from "react";
 import styled from "styled-components";
 import tw from "twin.macro";
+import { Text } from "@/styles/typography";
+import { Pencil } from "lucide-react";
 import SplitText from "@/components/SplitText";
-import GradientText from "@/components/GradientText";
-import { EditButton } from "./EditButton";
+import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent } from "react";
 
-const EditInput = styled.input`
-  ${tw`text-3xl font-semibold text-blue-600 text-center bg-transparent focus:outline-none`}
-  outline: none !important;
-  box-shadow: none !important;
-  max-width: 100%;
-
+const Textarea = styled.textarea`
+  ${tw`w-full text-2xl font-semibold text-[#0058CC] text-center bg-transparent resize-none`}
   &:focus {
-    outline: none !important;
-    box-shadow: none !important;
+    outline: none;
+    box-shadow: none;
   }
 `;
 
-const EditTextarea = styled.textarea`
-  ${tw`text-3xl font-semibold text-blue-600 text-center bg-transparent focus:outline-none resize-none`}
-  outline: none !important;
-  box-shadow: none !important;
-  max-width: 100%;
-
-  &:focus {
-    outline: none !important;
-    box-shadow: none !important;
-  }
-`;
-
-const TextDisplay = styled.span`
-  ${tw`text-3xl font-semibold text-blue-600`}
-`;
+const EditIconButton = ({ onClick }: { onClick: () => void }) => {
+  return (
+    <button
+      type="button"
+      aria-label="편집"
+      onClick={onClick}
+      className="p-0 border-0 bg-transparent text-[#9A9A9A] cursor-pointer transition-colors duration-300 hover:text-[#0058CC] focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+    >
+      <Pencil size={20} />
+    </button>
+  );
+};
 
 interface EditableTextProps {
   text: string | null;
-  isLoaded: boolean;
   isEditable: boolean;
-  hasAnimated: boolean;
   onEdit: () => void;
   onSave: (newText: string) => void;
-  onCancel: () => void;
+  onClose: () => void;
   skipAnimation?: boolean;
   placeholder?: string;
   delayCalculator?: (text: string) => number;
-  onAnimationComplete?: () => void;
 }
 
 export const EditableText = ({
   text,
-  isLoaded,
   isEditable,
-  hasAnimated,
   onEdit,
   onSave,
-  onCancel,
+  onClose,
   skipAnimation = false,
   placeholder = "",
   delayCalculator,
-  onAnimationComplete,
 }: EditableTextProps) => {
-  const spanRef = useRef<HTMLSpanElement>(null);
-  const [editRows, setEditRows] = useState<number>(1);
-  const [backup, setBackup] = useState<string | null>(null);
-  const [currentText, setCurrentText] = useState<string>(text || "");
+  const [currentText, setCurrentText] = useState(text ?? "");
+  const [isAnimationDone, setIsAnimationDone] = useState(true);
 
-  const handleEditClick = () => {
-    setBackup(text);
-    // span 크기 측정
-    if (spanRef.current) {
-      const height = spanRef.current.offsetHeight;
-      setEditRows(Math.round(height / 36));
-    }
-    onEdit();
-  };
-
-  const handleSave = () => {
-    onSave(currentText);
-    onCancel(); // 편집 모드 종료
-  };
-
-  const handleCancel = () => {
-    if (backup !== null) {
-      setCurrentText(backup);
-      onSave(backup);
-    }
-    onCancel();
-  };
-
-  const handleKeyDown = (
-    e: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    if (e.key === "Enter") {
-      handleSave();
-    } else if (e.key === "Escape") {
-      handleCancel();
-    }
-  };
-
-  const handleChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    setCurrentText(e.target.value);
-  };
+  const backupRef = useRef<string>("");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const isCancelingRef = useRef(false);
 
   useEffect(() => {
     if (!isEditable) {
-      setCurrentText(text || "");
+      setCurrentText(text ?? "");
     }
   }, [text, isEditable]);
+
+  // textarea 자동 높이 조절
+  const resize = () => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  };
+
+  useEffect(() => {
+    resize();
+  }, [currentText]);
+
+  // 커서 위치 제어
+  useEffect(() => {
+    if (!isEditable) return;
+
+    const el = textareaRef.current;
+    if (!el) return;
+
+    el.focus();
+
+    const len = el.value.length;
+    el.setSelectionRange(len, len);
+    resize();
+  }, [isEditable]);
+
+  // 애니메이션 여부 판단
+  useEffect(() => {
+    if (!text || skipAnimation) {
+      setIsAnimationDone(true);
+      return;
+    }
+    setIsAnimationDone(false);
+  }, [text, skipAnimation]);
+
+  const handleEditClick = () => {
+    backupRef.current = text ?? "";
+    onEdit();
+  };
+
+  const saveAndClose = () => {
+    onSave(currentText);
+    onClose();
+  };
+
+  const cancelEdit = () => {
+    isCancelingRef.current = true;
+    setCurrentText(backupRef.current);
+    onClose();
+  };
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      saveAndClose();
+    }
+
+    if (e.key === "Escape") {
+      e.preventDefault();
+      cancelEdit();
+    }
+  };
+
+  const handleBlur = () => {
+    if (isCancelingRef.current) {
+      isCancelingRef.current = false;
+      return;
+    }
+    saveAndClose();
+  };
+
+  const handleChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
+    setCurrentText(e.target.value);
+  };
+
+  const canEdit = Boolean(text) && isAnimationDone && !isEditable;
+  const shouldShowStaticText = isAnimationDone || skipAnimation;
 
   return (
     <div className="flex items-center justify-center gap-2 break-all">
       {isEditable ? (
-        editRows === 1 ? (
-          <EditInput
-            value={currentText}
-            onChange={handleChange}
-            onKeyDown={handleKeyDown}
-            onBlur={handleSave}
-            autoFocus
-          />
-        ) : (
-          <EditTextarea
-            value={currentText}
-            onChange={handleChange}
-            onKeyDown={handleKeyDown}
-            onBlur={handleSave}
-            autoFocus
-            rows={editRows}
-          />
-        )
+        <Textarea
+          ref={textareaRef}
+          rows={1}
+          value={currentText}
+          placeholder={placeholder}
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
+          onBlur={handleBlur}
+        />
       ) : (
         <>
-          {text ? (
-            hasAnimated || skipAnimation ? (
-              <TextDisplay ref={spanRef}>{text}</TextDisplay>
+          {text &&
+            (shouldShowStaticText ? (
+              <Text variant="2xl" weight="semibold" color="blue80">
+                {text}
+              </Text>
             ) : (
               <SplitText
                 text={text}
                 delay={delayCalculator ? delayCalculator(text) : 180}
-                onLetterAnimationComplete={onAnimationComplete}
+                onLetterAnimationComplete={() => setIsAnimationDone(true)}
+                className="text-2xl font-semibold text-[#0058CC]"
               />
-            )
-          ) : (
-            <GradientText>{placeholder}</GradientText>
-          )}
+            ))}
         </>
       )}
-      {isLoaded && !isEditable && <EditButton onClick={handleEditClick} />}
+
+      {canEdit && <EditIconButton onClick={handleEditClick} />}
     </div>
   );
 };

@@ -18,7 +18,7 @@ const Container = styled.div`
 `;
 
 const ContentWrapper = styled.div`
-  ${tw`w-full max-w-xl flex flex-col flex-1`}
+  ${tw`flex w-full max-w-xl flex-1 pb-16`}
 `;
 
 function App() {
@@ -48,22 +48,27 @@ function App() {
       }
     }
   }, [isAuthenticated, isNewUser, currentPage, navigate]);
+  useEffect(() => {
+    const port = browser.runtime.connect({ name: "sidepanel" });
+
+    return () => {
+      console.log("sidepanel disconnected");
+      port.disconnect();
+    };
+  }, []);
 
   return (
     <Container>
       <GlobalFonts />
-
+      <Header onMenuClick={() => setHistoryOpen(true)} />
       <ContentWrapper>
-        <Header onMenuClick={() => setHistoryOpen(true)} />
-
         {/* 상태 기반 라우팅 */}
         {currentPage === "home" && <Home />}
         {currentPage === "register" && <Register />}
         {currentPage === "search" && <Search />}
         {currentPage === "settings" && <Settings />}
-
-        <Footer />
       </ContentWrapper>
+      <Footer />
 
       {/* History Drawer */}
       <HistoryDrawer

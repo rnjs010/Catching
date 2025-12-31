@@ -1,226 +1,162 @@
-import { showCropOverlay } from "@/features/OCR/hooks/cropOverlay";
+import { extractCompany } from "@/features/search/services/companyService";
+import { showCropOverlay } from "@/features/search/services/showCropOverlay";
 
 export default defineContentScript({
-  matches: ["https://*/*"],
+  matches: ["<all_urls>"],
+  allFrames: true,
   main() {
     console.log("extension loaded");
+
     // 자소설닷컴 감지
     if (window.location.href.includes("jasoseol.com")) {
       let lastModalState = false;
-      let lastUrl = window.location.href;
-      let lastActiveModalIndex: number | null = null;
+      let lastCompanyName: string | null = null;
+      const isMainPage =
+        window.location.pathname === "/" || window.location.pathname === "";
 
-      const sendUpdate = (delay = 1000) => {
+      if (!isMainPage) return;
+
+      const sendUpdate = (delay = 200) => {
         setTimeout(() => {
           browser.runtime.sendMessage({ action: "jasoseolChanged" });
         }, delay);
       };
 
-      const checkModalState = () => {
-        const backdrop = document.querySelector(".recruit-slide-backdrop");
-        const hasNoScroll = document.body.classList.contains("no-scroll");
-        const isModal = backdrop !== null || hasNoScroll;
+      const getCompanyName = () => {
+        return extractCompany("jasoseol", window.location.href);
+      };
 
-        let currentActiveModalIndex: number | null = null;
-        // 메인, /training, /intern 페이지에서 45px 모달 스와이프 감지
-        // /intern 페이지는 URL 변경 + 45px 모달 스와이프 둘 다 사용
-        if (
-          isModal &&
-          (window.location.pathname === "/" ||
-            window.location.pathname === "/training" ||
-            window.location.pathname.startsWith("/intern/"))
-        ) {
-          // left: 45px 스타일을 가진 모달 찾기
-          const modals = document.querySelectorAll<HTMLElement>(
-            '.transition-left[class*="recruit-slide"]'
-          );
-          modals.forEach((modal, index) => {
-            const leftValue = modal.style.left;
-            // left: 45px 형태 체크
-            if (leftValue && leftValue.includes("45px")) {
-              currentActiveModalIndex = index;
-            }
-          });
-        }
+      const checkState = () => {
+        const isModal = document.body.classList.contains("no-scroll");
+        const companyName = getCompanyName();
 
-        // 모달 상태 변경 또는 활성 모달 변경 시 업데이트
-        if (
-          isModal !== lastModalState ||
-          (isModal && currentActiveModalIndex !== lastActiveModalIndex)
-        ) {
+        const modalChanged = isModal !== lastModalState;
+        const companyChanged =
+          companyName !== null && companyName !== lastCompanyName;
+
+        if (modalChanged || companyChanged) {
           lastModalState = isModal;
-          lastActiveModalIndex = currentActiveModalIndex;
+          lastCompanyName = companyName;
           sendUpdate();
         }
       };
 
-      const checkUrlChange = () => {
-        if (window.location.href !== lastUrl) {
-          lastUrl = window.location.href;
-          sendUpdate();
-        }
-      };
-
-      const observer = new MutationObserver(() => {
-        checkModalState();
-      });
-
-      observer.observe(document.body, {
-        attributes: true,
-        attributeFilter: ["class", "style"],
-        childList: true,
-        subtree: true,
-      });
-
-      const originalPushState = history.pushState;
-      const originalReplaceState = history.replaceState;
-
-      history.pushState = function (...args) {
-        originalPushState.apply(this, args);
-        checkUrlChange();
-      };
-
-      history.replaceState = function (...args) {
-        originalReplaceState.apply(this, args);
-        checkUrlChange();
-      };
-
-      window.addEventListener("popstate", checkUrlChange);
-
-      setInterval(() => {
-        checkUrlChange();
-        checkModalState();
-      }, 1000);
+      const portalRoot = document.querySelector("#portal");
+      if (portalRoot) {
+        const observer = new MutationObserver(() => {
+          checkState();
+        });
+        observer.observe(portalRoot, {
+          childList: true,
+          subtree: true,
+          characterData: true,
+        });
+      }
     }
 
-    // 잡플래닛 URL 파라미터 변경 감지
+    // 잡플래닛 URL 파라미터 변경 감지 (없어도 작동하는 듯)
     if (window.location.href.includes("jobplanet.co.kr/job/search")) {
-      let lastUrl = window.location.href;
-
-      const checkUrlChange = () => {
-        if (window.location.href !== lastUrl) {
-          lastUrl = window.location.href;
-          setTimeout(() => {
-            browser.runtime.sendMessage({ action: "jobplanetChanged" });
-          }, 3000);
-        }
-      };
-
-      const originalPushState = history.pushState;
-      const originalReplaceState = history.replaceState;
-
-      history.pushState = function (...args) {
-        originalPushState.apply(this, args);
-        checkUrlChange();
-      };
-
-      history.replaceState = function (...args) {
-        originalReplaceState.apply(this, args);
-        checkUrlChange();
-      };
-
-      window.addEventListener("popstate", checkUrlChange);
-      setInterval(checkUrlChange, 500);
+      // let lastUrl = window.location.href;
+      // const checkUrlChange = () => {
+      //   if (window.location.href !== lastUrl) {
+      //     lastUrl = window.location.href;
+      //     console.log("잡플래닛 URL 변경 감지");
+      //     setTimeout(() => {
+      //       browser.runtime.sendMessage({ action: "jobplanetChanged" });
+      //     }, 1500);
+      //   }
+      // };
+      // const originalPushState = history.pushState;
+      // const originalReplaceState = history.replaceState;
+      // history.pushState = function (...args) {
+      //   originalPushState.apply(this, args);
+      //   checkUrlChange();
+      // };
+      // history.replaceState = function (...args) {
+      //   originalReplaceState.apply(this, args);
+      //   checkUrlChange();
+      // };
+      // window.addEventListener("popstate", checkUrlChange);
     }
 
     // 잡다 모달 감지
-    if (window.location.href.includes("jobda.im/jobs")) {
-      let lastModalState = false;
+    if (window.location.href.includes("jobda.im")) {
       let lastCompanyName: string | null = null;
+      let lastModalState = false;
 
-      const sendUpdate = (delay = 500) => {
+      const sendUpdate = (delay = 300) => {
         setTimeout(() => {
           browser.runtime.sendMessage({ action: "jobdaChanged" });
         }, delay);
       };
 
-      const checkModalState = () => {
-        // #modal 안에 자식 요소가 있는지 확인 -> 자식 div._modal_u2wjv_24가 생기면 모달창 생긴 것.
-        const modalContainer = document.querySelector("#modal");
-        const isModal = !!(
-          modalContainer && modalContainer.children.length > 0
-        );
+      const getCompanyName = () =>
+        extractCompany("jobda", window.location.href);
 
-        // 모달이 열려있으면 회사명도 체크 -> 열린 채로 옆으로 넘기는 경우도 확인하기 위함
-        let currentCompanyName: string | null = null;
-        if (isModal) {
-          const companyElement = document.querySelector<HTMLElement>(
-            "a.jobPostModal_jobPostInfoText__zA5OZ"
-          );
-          currentCompanyName = companyElement?.textContent?.trim() || null;
-        }
+      const isModalOpen = () => {
+        return document.querySelector("#modal ._modal_u2wjv_24") !== null;
+      };
 
-        // 모달 상태가 변경되었거나, 모달 내 회사명이 변경되었으면 업데이트
-        if (
-          isModal !== lastModalState ||
-          (isModal && currentCompanyName !== lastCompanyName)
-        ) {
-          lastModalState = isModal;
-          lastCompanyName = currentCompanyName;
-          sendUpdate(500);
+      const checkState = () => {
+        const modal = isModalOpen();
+        const companyName = getCompanyName();
+
+        const modalChanged = modal !== lastModalState;
+        const companyChanged =
+          companyName !== lastCompanyName && companyName !== null;
+        if (modalChanged || (modal && companyChanged)) {
+          lastModalState = modal;
+          lastCompanyName = companyName;
+          sendUpdate(100);
         }
       };
 
-      // MutationObserver로 #modal 감지
-      const setupObserver = () => {
-        const modalContainer = document.querySelector("#modal");
-
-        if (modalContainer) {
-          const observer = new MutationObserver(() => {
-            checkModalState();
-          });
-
-          observer.observe(modalContainer, {
-            childList: true,
-            subtree: true,
-          });
-
-          console.log("Jobda modal observer set up");
-          return true;
-        }
-        return false;
-      };
-
-      // 즉시 시도
-      if (!setupObserver()) {
-        // #modal이 아직 없으면 body를 감시하다가 #modal이 생기면 설정
-        const bodyObserver = new MutationObserver(() => {
-          if (setupObserver()) {
-            bodyObserver.disconnect();
-          }
+      const modalRoot = document.querySelector("#modal");
+      if (modalRoot) {
+        const observer = new MutationObserver(() => {
+          checkState();
         });
 
-        bodyObserver.observe(document.body, {
+        observer.observe(modalRoot, {
           childList: true,
           subtree: true,
+          characterData: true,
         });
       }
-
-      setInterval(checkModalState, 1000);
     }
 
     // OCR 크롭 UI 및 선택 모니터링 메시지 리스너
+    let cancelCropOverlay: (() => void) | null = null;
+
     browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message.type === "START_CROP") {
-        showCropOverlay(message.screenshot)
+        const { promise, cancel } = showCropOverlay(message.screenshot);
+        cancelCropOverlay = cancel;
+        promise
           .then((croppedImage: string) => {
+            cancelCropOverlay = null;
             sendResponse({ croppedImage });
           })
           .catch(() => {
+            cancelCropOverlay = null;
             sendResponse({ croppedImage: null });
           });
-        return true; // 비동기 응답을 위해 true 반환
+        return true; // 비동기 응답
+      }
+
+      if (message.type === "CANCEL_CROP") {
+        console.log("Crop cancelled via message");
+        cancelCropOverlay?.();
+        cancelCropOverlay = null;
       }
 
       if (message.type === "START_SELECTION_MONITOR") {
-        // 선택 모니터링 시작
         let isMonitoring = true;
 
         const handleSelectionChange = () => {
           if (!isMonitoring) return;
 
           const selectedText = window.getSelection()?.toString().trim() || "";
-          // 실시간 업데이트 전송
           browser.runtime.sendMessage({
             type: "SELECTION_UPDATE",
             text: selectedText,
@@ -232,12 +168,10 @@ export default defineContentScript({
 
           const selectedText = window.getSelection()?.toString().trim();
           if (selectedText) {
-            // 최종 선택 완료
             isMonitoring = false;
             browser.runtime.sendMessage({
               type: "SELECTION_COMPLETE",
             });
-            // 리스너 제거
             document.removeEventListener(
               "selectionchange",
               handleSelectionChange
@@ -246,9 +180,7 @@ export default defineContentScript({
           }
         };
 
-        // selectionchange 이벤트로 실시간 감지
         document.addEventListener("selectionchange", handleSelectionChange);
-        // mouseup 이벤트로 선택 완료 감지
         document.addEventListener("mouseup", handleMouseUp);
 
         sendResponse({ started: true });
