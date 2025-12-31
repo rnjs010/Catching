@@ -31,8 +31,10 @@ body {
   margin: 0;
   place-items: center;
   min-width: 320px;
+  max-width: 100vw;
   min-height: 100vh;
-  font-family: Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", "Segoe UI", Arial, sans-serif;
+  font-family: Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto,
+    "Helvetica Neue", "Segoe UI", Arial, sans-serif;
 }
 
 h1 {
@@ -70,4 +72,17 @@ button:focus-visible {
   button {
     background-color: #f9f9f9;
   }
+}
+
+.split-parent {
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.split-char,
+.split-word,
+.split-line {
+  white-space: normal !important;
+  display: inline !important;
 }

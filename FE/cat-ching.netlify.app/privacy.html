@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <!-- 기본 SEO -->
+    <meta name="title" content="Cat-ching - 개인정보처리방침">
+    <meta name="description" content="Cat-ching 확장 프로그램의 개인정보 처리방침 안내 페이지입니다.">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Cat-ching - 개인정보처리방침">
+    <meta property="og:description" content="Cat-ching 확장 프로그램이 처리하는 개인정보 항목, 보유 기간, 이용 목적을 안내합니다.">
+    <meta property="og:image" content="https://cat-ching.netlify.app/assets/images/Catching_min.png">
+    <meta property="og:url" content="https://cat-ching.netlify.app/privacy.html">
+    <meta property="og:type" content="article">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Cat-ching - 개인정보처리방침">
+    <meta name="twitter:description" content="Cat-ching 확장 프로그램의 개인정보 처리 방침 안내.">
+    <meta name="twitter:image" content="https://cat-ching.netlify.app/assets/images/Catching_min.png">
+
+    <link rel="canonical" href="https://cat-ching.netlify.app/privacy.html">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cat-ching 개인정보처리방침</title>
+    <link rel="icon" href="/assets/images/favicon.png" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="google-site-verification" content="zTcHUdsznlJYzrpi4bvK02OjTF_eKUewlug5g0PiGfA" />
+  </head>
+
+  <body class="bg-gray-50">
+
+    <!-- NAV -->
+    <nav class="bg-white shadow-sm fixed w-full z-50">
+      <div class="max-w-7xl mx-auto px-4 flex items-center justify-between h-16">
+        <a href="/index.html">
+          <div class="flex items-center space-x-3">
+            <img src="/assets/images/logo.png" class="h-8" alt="Cat-ching Logo" />
+            <span class="text-2xl font-bold" style="color:#0058CC;">Cat-ching</span>
+          </div>
+        </a>
+
+        <div class="flex items-center">
+          <!-- Desktop links -->
+          <div class="hidden md:flex items-center space-x-6 text-gray-700 font-medium">
+            <a href="/index.html#features" class="hover:text-blue-600" data-i18n="nav_features">기능</a>
+            <a href="/index.html#preview" class="hover:text-blue-600" data-i18n="nav_preview">미리보기</a>
+            <a href="/index.html#guide" class="hover:text-blue-600" data-i18n="nav_guide">설치 방법</a>
+            <a href="/privacy.html" class="hover:text-blue-600 font-semibold" data-i18n="nav_privacy">개인정보처리방침</a>
+            <a href="/terms.html" class="hover:text-blue-600" data-i18n="nav_terms">서비스 이용약관</a>
+
+            <!-- 언어 선택 -->
+            <select id="langSelect" aria-label="언어 선택" class="border rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="ko">KO</option>
+              <option value="en">EN</option>
+            </select>
+          </div>
+
+          <!-- Mobile menu button -->
+          <button id="mobileMenuBtn" class="md:hidden ml-3 p-2 rounded-md text-gray-700 focus:outline-none" aria-label="메뉴 열기">☰</button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Mobile menu (hidden on md+) -->
+  <div id="mobileMenu" class="md:hidden hidden bg-white border-b absolute top-16 left-0 right-0 z-40">
+      <div class="px-4 py-3 space-y-2">
+        <a href="/index.html" class="block text-gray-700" data-i18n="nav_home">홈</a>
+        <a href="/privacy.html" class="block text-gray-700" data-i18n="nav_privacy">개인정보처리방침</a>
+        <a href="/terms.html" class="block text-gray-700" data-i18n="nav_terms">서비스 이용약관</a>
+        <div>
+          <label for="langSelectMobile" class="sr-only">언어 선택</label>
+          <select id="langSelectMobile" class="w-full border rounded-md px-2 py-1 text-sm">
+            <option value="ko">KO</option>
+            <option value="en">EN</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <main class="pt-32 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <h1 class="text-3xl font-bold text-gray-900 mb-8 text-center" data-i18n="privacy_title">
+        개인정보처리방침
+      </h1>
+
+      <div class="space-y-8 text-gray-700 text-base">
+
+        <!-- Section 1 -->
+        <section>
+          <h2 class="text-2xl font-semibold text-gray-900" data-i18n="section1_title"></h2>
+          <p data-i18n="section1_content"></p>
+        </section>
+
+        <!-- Section 2 -->
+        <section>
+          <h2 class="text-2xl font-semibold text-gray-900" data-i18n="section2_title"></h2>
+          <p data-i18n="section2_content"></p>
+        </section>
+
+        <!-- Section 3 -->
+        <section>
+          <h2 class="text-2xl font-semibold text-gray-900" data-i18n="section3_title"></h2>
+          <p data-i18n="section3_line1"></p>
+          <ul class="list-disc pl-5 space-y-1">
+            <li data-i18n="section3_line2"></li>
+            <li data-i18n="section3_line3"></li>
+          </ul>
+        </section>
+
+        <!-- Section 4 -->
+        <section>
+          <h2 class="text-2xl font-semibold text-gray-900" data-i18n="section4_title"></h2>
+          <p data-i18n="section4_content"></p>
+        </section>
+
+        <!-- Section 5 -->
+        <section>
+          <h2 class="text-2xl font-semibold text-gray-900" data-i18n="section5_title"></h2>
+          <p data-i18n="section5_content"></p>
+        </section>
+
+        <!-- Section 6 -->
+        <section>
+          <h2 class="text-2xl font-semibold text-gray-900" data-i18n="section6_title"></h2>
+          <p data-i18n="section6_content"></p>
+        </section>
+
+        <!-- Section 7 -->
+        <section class="mt-16 border-t pt-10 space-y-4">
+          <h2 class="text-2xl font-semibold text-gray-900" data-i18n="section7_title"></h2>
+          <p data-i18n="section7_content"></p>
+
+          <h3 class="text-xl font-semibold text-gray-800" data-i18n="section7_responsible"></h3>
+          <ul class="pl-4 list-disc">
+            <li data-i18n="section7_name"></li>
+            <li data-i18n="section7_position"></li>
+            <li data-i18n="section7_contact"></li>
+          </ul>
+
+          <p class="text-sm text-gray-500 pt-2" data-i18n="section7_note"></p>
+        </section>
+
+        <!-- Section 8 -->
+        <section class="mt-16 border-t pt-10 space-y-4">
+          <h2 class="text-2xl font-semibold text-gray-900" data-i18n="section8_title"></h2>
+          <p data-i18n="section8_content"></p>
+          <ul class="list-disc pl-5 space-y-1 text-sm">
+            <li data-i18n="section8_list1"></li>
+            <li data-i18n="section8_list2"></li>
+            <li data-i18n="section8_list3"></li>
+            <li data-i18n="section8_list4"></li>
+          </ul>
+          <p data-i18n="section8_right"></p>
+          <p class="text-sm text-gray-500" data-i18n="section8_link"></p>
+        </section>
+
+      </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-gray-900 text-gray-300 py-10 text-center mt-12">
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+        <a href="/privacy.html" class="hover:text-white" data-i18n="footer_privacy">개인정보처리방침</a>
+        <a href="/terms.html" class="hover:text-white" data-i18n="footer_terms">서비스 이용약관</a>
+      </div>
+      <p class="mt-6 text-sm">© 2025 Cat-ching. All rights reserved.</p>
+    </footer>
+
+    <!-- JS -->
+    <script>
+      /* 다국어 설정 */
+      const translations = {
+        nav_home: {ko:"홈", en:"Home"},
+        nav_features: {ko:"기능", en:"Features"},
+        nav_preview: {ko:"미리보기", en:"Preview"},
+        nav_guide: {ko:"설치 방법", en:"Install Guide"},
+        nav_privacy: {ko:"개인정보처리방침", en:"Privacy Policy"},
+        nav_terms: {ko:"서비스 이용약관", en:"Terms of Service"},
+
+        privacy_title: {ko:"개인정보처리방침", en:"Privacy Policy"},
+        section1_title: {ko:"1. 개인정보의 처리 목적", en:"1. Purpose of Processing Personal Information"},
+        section1_content: {ko:"Cat-ching은 로그인 기능과 Notion 연동 기능 제공을 위해 최소한의 개인정보를 수집하며, 명시한 목적 외에는 사용하지 않습니다.", en:"Cat-ching collects only the minimum personal information necessary to provide login and Notion integration features, and does not use the collected data for any purpose other than those explicitly stated."},
+        section2_title: {ko:"2. 개인정보의 처리 및 보유 기간", en:"2. Retention Period"},
+        section2_content: {ko:"개인정보는 회원 탈퇴 시 즉시 파기하며, 법령에 따른 보관 기간이 필요한 경우 해당 기간 동안 보관합니다.", en:"Personal information is destroyed immediately upon account deletion unless retention is required by law."},
+        section3_title: {ko:"3. 처리하는 개인정보 항목", en:"3. Items of Personal Information Processed"},
+        section3_line1: {ko:"수집 항목은 다음과 같습니다:", en:"Collected items are as follows:"},
+        section3_line2: {ko:"로그인 정보: 이메일, 프로필 이름(구글 로그인 시)", en:"Login info: Email, profile name (Google login)"},
+        section3_line3: {ko:"서비스 이용 정보: 검색한 회사명, 직무명, 분석 요청 기록", en:"Usage info: Company names, job roles, analysis request logs"},
+        section4_title: {ko:"4. 개인정보의 파기 절차 및 방법", en:"4. Destruction of Personal Information"},
+        section4_content: {ko:"보유 기간이 지난 개인정보는 복구 불가능한 방식으로 즉시 삭제합니다.", en:"Personal data beyond retention periods is permanently destroyed using secure methods."},
+        section5_title: {ko:"5. 정보주체의 권리와 행사방법", en:"5. Rights of Data Subjects"},
+        section5_content: {ko:"정보주체는 개인정보 열람·정정·삭제·처리정지 요청을 이메일로 제출할 수 있습니다.", en:"Users may request access, correction, deletion, or suspension of personal data via email."},
+        section6_title: {ko:"6. 개인정보의 안전성 확보 조치", en:"6. Security Measures"},
+        section6_content: {ko:"암호화, 접근 권한 통제, 보안 점검 등 개인정보보호를 위한 조치를 시행하고 있습니다.", en:"Security measures such as encryption, access control, and security audits are applied."},
+        section7_title: {ko:"7. 책임자 정보 및 적용 일자", en:"7. Responsible Officer and Effective Date"},
+        section7_content: {ko:"본 개인정보처리방침은 『개인정보 보호법』 제30조에 따라 수립되었으며 Cat-ching 서비스의 개인정보 처리 기준을 포함합니다. 본 방침은 2025년 11월 15일부터 적용됩니다.", en:"This Privacy Policy is established in accordance with Article 30 of the Personal Information Protection Act. It is effective from November 15, 2025."},
+        section7_responsible: {ko:"▶ 개인정보 보호책임자", en:"▶ Personal Information Protection Officer"},
+        section7_name: {ko:"성명: 서성우", en:"Name: Seongwoo Seo"},
+        section7_position: {ko:"직책: 개인정보보호책임자", en:"Position: Personal Information Officer"},
+        section7_contact: {ko:"연락처: team2eroom@gmail.com", en:"Contact: team2eroom@gmail.com"},
+        section7_note: {ko:"※ 개인정보 관련 문의는 이메일로 접수하실 수 있습니다.", en:"※ For any privacy inquiries, please contact via email."},
+        section8_title: {ko:"8. 권익침해 구제 방법", en:"8. Remedies"},
+        section8_content: {ko:"개인정보침해 관련 상담은 아래 기관을 통해 진행할 수 있습니다.", en:"For personal data infringement issues, you may contact the following:"},
+        section8_list1: {ko:"1. 개인정보분쟁조정위원회: 1833-6972 / www.kopico.go.kr", en:"1. Personal Information Dispute Mediation Committee: 1833-6972 / www.kopico.go.kr"},
+        section8_list2: {ko:"2. 개인정보침해신고센터: 118 / privacy.kisa.or.kr", en:"2. Privacy Infringement Center: 118 / privacy.kisa.or.kr"},
+        section8_list3: {ko:"3. 대검찰청 사이버수사과: 1301 / www.spo.go.kr", en:"3. Supreme Prosecutors' Office Cyber Unit: 1301 / www.spo.go.kr"},
+        section8_list4: {ko:"4. 경찰청 사이버안전국: 182 / ecrm.cyber.go.kr", en:"4. National Police Cyber Bureau: 182 / ecrm.cyber.go.kr"},
+        section8_right: {ko:"권리가 침해된 경우 행정심판을 제기할 수 있습니다.", en:"You may file an administrative appeal if your rights are violated."},
+        section8_link: {ko:"※ 자세한 내용은 www.simpan.go.kr 에서 확인할 수 있습니다.", en:"※ Details are available at www.simpan.go.kr."},
+
+        footer_privacy: {ko:"개인정보처리방침", en:"Privacy Policy"},
+        footer_terms: {ko:"서비스 이용약관", en:"Terms of Service"}
+      };
+
+      function changeLanguage(lang){
+        document.querySelectorAll("[data-i18n]").forEach(el=>{
+          const key = el.getAttribute("data-i18n");
+          if(translations[key]) el.textContent = translations[key][lang] || translations[key]["ko"];
+        });
+      }
+
+      const userLang = navigator.language.startsWith("en") ? "en" : "ko";
+      const langSelect = document.getElementById("langSelect");
+      langSelect.value = userLang;
+      changeLanguage(userLang);
+
+      // 언어 선택 변경 시 즉시 반영되도록 이벤트 리스너 추가
+      langSelect.addEventListener("change", (e) => {
+        const newLang = e.target.value || "ko";
+        changeLanguage(newLang);
+        // 모바일 메뉴 선택 동기화
+        const mobileSel = document.getElementById('langSelectMobile');
+        if(mobileSel) mobileSel.value = newLang;
+      });
+
+      // 모바일 메뉴 토글 및 모바일 언어 선택 동작
+      const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+      const mobileMenu = document.getElementById('mobileMenu');
+      const langSelectMobile = document.getElementById('langSelectMobile');
+      if(mobileMenuBtn && mobileMenu){
+        mobileMenuBtn.addEventListener('click', ()=> mobileMenu.classList.toggle('hidden'));
+        mobileMenu.querySelectorAll('a').forEach(a=> a.addEventListener('click', ()=> mobileMenu.classList.add('hidden')));
+      }
+      if(langSelectMobile){
+        langSelectMobile.value = userLang;
+        langSelectMobile.addEventListener('change', e=>{
+          const v = e.target.value || 'ko';
+          changeLanguage(v);
+          langSelect.value = v;
+        });
+      }
+    </script>
+
+  </body>
+</html>
