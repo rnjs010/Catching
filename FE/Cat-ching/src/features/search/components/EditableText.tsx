@@ -1,8 +1,8 @@
 import styled from "styled-components";
 import tw from "twin.macro";
 import { Text } from "@/styles/typography";
-import SplitText from "@/components/SplitText";
 import { Pencil } from "lucide-react";
+import SplitText from "@/components/SplitText";
 import { useState, useRef, useEffect, KeyboardEvent, ChangeEvent } from "react";
 
 const Textarea = styled.textarea`

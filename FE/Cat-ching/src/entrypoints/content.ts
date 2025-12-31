@@ -1,5 +1,5 @@
-import { extractCompany } from "@/features/scraper/services/companyService";
-import { showCropOverlay } from "@/features/scraper/services/showCropOverlay";
+import { extractCompany } from "@/features/search/services/companyService";
+import { showCropOverlay } from "@/features/search/services/showCropOverlay";
 
 export default defineContentScript({
   matches: ["<all_urls>"],

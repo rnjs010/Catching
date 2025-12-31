@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import {
   detectCompany,
   onTabChange,
-} from "@/features/scraper/services/companyService";
+} from "@/features/search/services/companyService";
 import { DetectResult } from "@/types/feature";
 
 export const useCompanyDetector = () => {

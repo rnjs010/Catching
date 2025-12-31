@@ -9,7 +9,7 @@ import { JobInputMode, useJobViewState } from "../hooks/useJobViewState";
 import { useJobDrag } from "../hooks/useJobDrag";
 import { useJobOCR } from "../hooks/useJobOCR";
 import { useJobInputStore } from "@/stores/jobStore";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 const Container = styled.div<{ visible: boolean }>`
   ${({ visible }) =>

@@ -2,12 +2,12 @@ import styled from "styled-components";
 import tw from "twin.macro";
 import { Text } from "@/styles/typography";
 import { SearchIcon } from "lucide-react";
-import { useCompanyDetector } from "@/features/scraper/hooks/useCompanyDetector";
-import { useShowCompany } from "@/features/scraper/hooks/useShowCompany";
-import CompanySection from "@/features/scraper/components/CompanySection";
-import JobSection from "@/features/scraper/components/JobSection";
-import { useEffect, useState } from "react";
+import CompanySection from "@/features/search/components/CompanySection";
+import JobSection from "@/features/search/components/JobSection";
+import { useCompanyDetector } from "@/features/search/hooks/useCompanyDetector";
+import { useShowCompany } from "@/features/search/hooks/useShowCompany";
 import { useJobInputStore } from "@/stores/jobStore";
+import { useEffect, useState } from "react";
 
 const PageLayout = styled.div`
   ${tw`relative flex flex-col flex-1 w-full items-center`}
