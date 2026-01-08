@@ -2,12 +2,13 @@ import "./App.css";
 import styled from "styled-components";
 import tw from "twin.macro";
 import { GlobalFonts } from "@/styles/fonts";
-import Home from "@/pages/Home";
-import Search from "@/pages/Search";
-import Register from "@/pages/Register";
-import Settings from "@/pages/Settings";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import Home from "@/pages/Home";
+import Search from "@/pages/Search";
+import Result from "@/pages/Result";
+import Register from "@/pages/Register";
+import Settings from "@/pages/Settings";
 import HistoryDrawer from "@/components/HistoryDrawer";
 import { useAuthStore } from "@/stores/authStore";
 import { useAppStore } from "@/stores/appStore";
@@ -18,7 +19,7 @@ const Container = styled.div`
 `;
 
 const ContentWrapper = styled.div`
-  ${tw`flex w-full max-w-xl flex-1 pb-16`}
+  ${tw`flex w-full max-w-xl flex-1 pb-10`}
 `;
 
 function App() {
@@ -48,6 +49,7 @@ function App() {
       }
     }
   }, [isAuthenticated, isNewUser, currentPage, navigate]);
+
   useEffect(() => {
     const port = browser.runtime.connect({ name: "sidepanel" });
 
@@ -67,6 +69,7 @@ function App() {
         {currentPage === "register" && <Register />}
         {currentPage === "search" && <Search />}
         {currentPage === "settings" && <Settings />}
+        {currentPage === "analysis" && <Result />}
       </ContentWrapper>
       <Footer />
 

@@ -10,12 +10,12 @@ import AlertPopup from "./AlertPopup";
 import { useAppStore } from "@/stores/appStore";
 
 export const HeaderWrapper = styled.div`
-  ${tw`w-full flex justify-between items-center px-1 py-3 sticky top-0 z-10`}
+  ${tw`w-full flex justify-between items-center px-1 sticky top-0 z-10`}
   background-color: ${colors.gray10};
 `;
 
 const IconButton = styled.button`
-  ${tw`p-2 rounded-lg cursor-pointer`}
+  ${tw`px-2 pt-2 pb-1 rounded-lg cursor-pointer`}
   background: none;
   border: none;
 `;
@@ -60,7 +60,10 @@ export default function Header({ onMenuClick }: HeaderProps) {
   return (
     <>
       <HeaderWrapper>
-        <IconButton onClick={handleMenuClick} aria-label={currentPage === 'settings' ? 'Back' : 'Open Side Menu'}>
+        <IconButton
+          onClick={handleMenuClick}
+          aria-label={currentPage === "settings" ? "Back" : "Open Side Menu"}
+        >
           {currentPage === "settings" ? (
             <IoArrowBack size={24} />
           ) : (

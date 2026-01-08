@@ -7,6 +7,7 @@ import JobSection from "@/features/search/components/JobSection";
 import { useCompanyDetector } from "@/features/search/hooks/useCompanyDetector";
 import { useShowCompany } from "@/features/search/hooks/useShowCompany";
 import { useJobInputStore } from "@/stores/jobStore";
+import { useAppStore } from "@/stores/appStore";
 import { useEffect, useState } from "react";
 
 const PageLayout = styled.div`
@@ -72,6 +73,9 @@ export default function Search() {
     reset();
   }, [isAutoDetected]);
 
+  // 페이지 이동
+  const { navigate } = useAppStore();
+
   return (
     <PageLayout>
       <ContentArea>
@@ -90,7 +94,11 @@ export default function Search() {
 
       <SearchButton
         isActive={!!companyValue && !!job}
-        disabled={!!companyValue && !!job}
+        disabled={!(!!companyValue && !!job)}
+        onClick={() => {
+          if (!companyValue || !job) return;
+          navigate("analysis");
+        }}
       >
         <SearchIcon size={24} color="white" />
         <Text weight="semibold" color="gray10">
