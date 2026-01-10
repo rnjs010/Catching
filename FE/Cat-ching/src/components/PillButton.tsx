@@ -1,84 +1,67 @@
-import { ReactNode } from "react";
 import styled from "styled-components";
+import tw from "twin.macro";
+import { Text } from "@/styles/typography";
+import { ColorName, colors } from "@/styles/colors";
+import { ReactNode } from "react";
 
 interface PillButtonProps {
-  children: ReactNode;
+  text?: string;
   icon?: ReactNode;
   onClick?: () => void;
-  borderColor?: string;
-  pressed?: boolean;
+  borderColor?: ColorName;
   className?: string;
   disabled?: boolean;
 }
 
 const StyledButton = styled.button<{
-  $borderColor: string;
-  $pressed: boolean;
+  $borderColor: ColorName;
   $disabled: boolean;
 }>`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  border-radius: 9999px;
-  border: 2px solid ${(props) => props.$borderColor};
-  background: white;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: ${(props) => (props.$disabled ? "not-allowed" : "pointer")};
-  opacity: ${(props) => (props.$disabled ? 0.6 : 1)};
-  transition: all 0.2s ease;
-  outline: none;
-  pointer-events: ${(props) => (props.$disabled ? "none" : "auto")};
+  ${tw`flex items-center gap-1 px-2 py-1 rounded-full 
+  bg-white border-2 shadow-sm transition-all duration-200`}
 
-  box-shadow: ${(props) =>
-    props.$pressed
-      ? "inset 0 2px 4px rgba(0, 0, 0, 0.1)"
-      : "0 2px 8px rgba(0, 0, 0, 0.1)"};
+  border-color: ${({ $borderColor }) => colors[$borderColor]};
 
-  transform: ${(props) =>
-    props.$pressed ? "translateY(1px)" : "translateY(0)"};
+  ${({ $disabled }) =>
+    $disabled
+      ? tw`pointer-events-none opacity-50 bg-gray-200`
+      : tw`cursor-pointer`}
 
   &:hover {
-    box-shadow: ${(props) =>
-      props.$pressed
-        ? "inset 0 2px 4px rgba(0, 0, 0, 0.1)"
-        : "0 4px 12px rgba(0, 0, 0, 0.15)"};
-    border-color: ${(props) => props.$borderColor};
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px);
   }
 
   &:active {
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
-    background: gainsboro;
+    box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.15);
     transform: translateY(1px);
+    background: #f0f0f0;
   }
 `;
 
 const IconWrapper = styled.span`
   display: flex;
   align-items: center;
-  font-size: 1.25rem;
 `;
 
 export default function PillButton({
-  children,
+  text,
   icon,
   onClick,
-  borderColor = "#0065FF",
-  pressed = false,
+  borderColor = "blue60",
   className = "",
   disabled = false,
 }: PillButtonProps) {
   return (
     <StyledButton
       $borderColor={borderColor}
-      $pressed={pressed}
+      disabled={disabled}
       $disabled={disabled}
-      onClick={disabled ? undefined : onClick}
+      onClick={onClick}
       className={className}
     >
       {icon && <IconWrapper>{icon}</IconWrapper>}
-      {children}
+      {text && <Text variant="xs">{text}</Text>}
     </StyledButton>
   );
 }

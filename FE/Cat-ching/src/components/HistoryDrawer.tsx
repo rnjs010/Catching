@@ -4,7 +4,7 @@ import { gsap } from "gsap";
 import styled from "styled-components";
 import tw from "twin.macro";
 import { IoClose } from "react-icons/io5";
-import { FiUser, FiLogOut, FiPlus } from "react-icons/fi";
+import { FiSettings, FiLogOut, FiPlus } from "react-icons/fi";
 import { Text } from "@/styles/typography";
 import PillButton from "./PillButton";
 import { useAuthStore } from "@/stores/authStore";
@@ -260,20 +260,17 @@ export default function HistoryDrawer({ isOpen, onClose }: HistoryDrawerProps) {
 
             <Footer>
               <PillButton
-                icon={<FiUser />}
-                borderColor="#6DACFF"
+                text="사용자 설정"
+                icon={<FiSettings size={14} />}
                 onClick={handleSettingsClick}
-              >
-                사용자 설정
-              </PillButton>
+              />
 
               <PillButton
-                icon={<FiLogOut />}
-                borderColor="#E0EEFF"
+                text="로그아웃"
+                icon={<FiLogOut size={14} />}
+                borderColor="blue50"
                 onClick={handleLogout}
-              >
-                로그아웃
-              </PillButton>
+              />
             </Footer>
           </DrawerContainer>
         )}

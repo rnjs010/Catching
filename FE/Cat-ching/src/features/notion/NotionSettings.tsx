@@ -303,12 +303,11 @@ export default function NotionSettings() {
           </InfoRow>
 
           <PillButton
-            borderColor={colors.gray30}
+            text="연동 해제하기"
+            borderColor="gray30"
             onClick={handleDisconnect}
             className="mt-2 w-full justify-center"
-          >
-            연동 해제하기
-          </PillButton>
+          />
         </>
       ) : (
         <div className="flex flex-col gap-3 py-2">
@@ -316,13 +315,12 @@ export default function NotionSettings() {
             검색한 기업 분석 결과를 Notion 페이지로 내보낼 수 있습니다.
           </Text>
           <PillButton
-            borderColor={colors.blue80}
+            text={isConnecting ? "연결 중..." : "Notion 연결하기"}
+            borderColor="blue80"
             onClick={handleConnect}
             disabled={isConnecting}
             className="w-full justify-center"
-          >
-            {isConnecting ? "연결 중..." : "Notion 연결하기"}
-          </PillButton>
+          />
         </div>
       )}
 

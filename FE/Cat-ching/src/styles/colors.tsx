@@ -9,7 +9,6 @@ export const colors = {
   blue70: "#0065FF",
   blue80: "#0058CC",
   blue90: "#004299",
-  blue95: "#004299", // 중복 포함
 
   // Black Palette (light → dark)
   gray10: "#FFFFFF",
@@ -23,6 +22,7 @@ export const colors = {
   gray90: "#434343",
   gray95: "#2D2D2D",
   black: "#000000",
+  red: "#E0393C",
 } as const;
 
 export type ColorName = keyof typeof colors;

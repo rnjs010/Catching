@@ -1,10 +1,12 @@
 import styled from "styled-components";
 import tw from "twin.macro";
 import { Text } from "@/styles/typography";
+import { colors } from "@/styles/colors";
 import catLogo from "@/assets/cat_glass.png";
 import { ChevronDown, ChevronRight, Pin } from "lucide-react";
 import { SiNotion } from "react-icons/si";
 import { GrDocumentPdf } from "react-icons/gr";
+import { FiCopy } from "react-icons/fi";
 import { useState } from "react";
 
 const PageLayout = styled.div`
@@ -12,7 +14,8 @@ const PageLayout = styled.div`
 `;
 
 const QueryText = styled.div`
-  ${tw`bg-[#0065FF] px-2 py-1 mb-2 rounded-lg self-end`}
+  ${tw`px-2 py-1 mb-2 rounded-lg self-end`}
+  background-color: ${colors.blue70};
 `;
 
 const ResultCard = styled.div`
@@ -40,6 +43,7 @@ const SectionWrapper = styled.div`
 
 const SectionHeader = styled.button`
   ${tw`w-full flex items-center justify-between p-1 rounded-lg bg-[#B3D4FF]`}
+  background-color: ${colors.blue40};
 `;
 
 const SectionContent = styled.div`
@@ -52,6 +56,15 @@ const ItemTitle = styled.p`
 
 const ItemDesc = styled.p`
   ${tw`text-xs text-gray-500 leading-relaxed whitespace-pre-line`}
+`;
+
+const ButtonWrapper = styled.div`
+  ${tw`flex justify-between pt-1.5 border-t`}
+  border-color: ${colors.gray40};
+`;
+
+const LeftButtons = styled.div`
+  ${tw`flex gap-2`}
 `;
 
 export default function Result() {
@@ -172,6 +185,23 @@ export default function Result() {
               </SectionContent>
             )}
           </SectionWrapper>
+
+          {/* 하단 버튼 */}
+          <ButtonWrapper>
+            <LeftButtons>
+              <PillButton
+                text="Notion에 추가"
+                icon={<SiNotion size={12} />}
+                borderColor="blue90"
+              />
+              <PillButton
+                text="PDF로 저장"
+                icon={<GrDocumentPdf size={12} />}
+                borderColor="red"
+              />
+            </LeftButtons>
+            <PillButton icon={<FiCopy size={16} />} borderColor="gray60" />
+          </ButtonWrapper>
         </ScrollArea>
       </ResultCard>
     </PageLayout>
