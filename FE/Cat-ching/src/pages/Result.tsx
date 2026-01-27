@@ -7,7 +7,11 @@ import { ChevronDown, ChevronRight, Pin } from "lucide-react";
 import { SiNotion } from "react-icons/si";
 import { GrDocumentPdf } from "react-icons/gr";
 import { FiCopy } from "react-icons/fi";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useAnalysisInputStore } from "@/stores/analysisInputStore";
+import { useAnalysisSSE } from "@/features/result/hooks/useAnalysis";
+import { useAnalysisStore } from "@/stores/analysisStore";
+import { useAuthStore } from "@/stores/authStore";
 
 const PageLayout = styled.div`
   ${tw`relative flex flex-col flex-1 w-full items-center`}
@@ -46,16 +50,27 @@ const SectionHeader = styled.button`
   background-color: ${colors.blue40};
 `;
 
-const SectionContent = styled.div`
-  ${tw`px-1.5`}
+const SectionContent = styled.div<{ $open: boolean }>`
+  ${tw`px-1.5 overflow-hidden transition-all duration-300`};
+
+  max-height: ${({ $open }) => ($open ? "2000px" : "0")};
+  opacity: ${({ $open }) => ($open ? 1 : 0)};
 `;
 
-const ItemTitle = styled.p`
-  ${tw`font-semibold text-gray-900`}
-`;
+const TypingIndicator = ({ text = "AI 분석 중..." }: { text?: string }) => (
+  <div className="flex items-center gap-1 text-gray-400 mt-2">
+    <span>{text}</span>
+    <BlinkCursor />
+  </div>
+);
 
-const ItemDesc = styled.p`
-  ${tw`text-xs text-gray-500 leading-relaxed whitespace-pre-line`}
+const BlinkCursor = styled.span`
+  animation: blink 1s step-end infinite;
+  @keyframes blink {
+    50% {
+      opacity: 0;
+    }
+  }
 `;
 
 const ButtonWrapper = styled.div`
@@ -68,11 +83,58 @@ const LeftButtons = styled.div`
 `;
 
 export default function Result() {
+  const [token, setToken] = useState<string | null>(null);
+  const { company, position } = useAnalysisInputStore();
+  const { start, stop } = useAnalysisSSE();
+  const { sections, loadingStates, typingStates, isComplete } =
+    useAnalysisStore();
+
   const [open, setOpen] = useState({
-    basic: false,
+    basic: true,
+    issue: true,
     business: true,
-    issue: false,
+    positionIssue: true,
   });
+
+  useEffect(() => {
+    (async () => {
+      const t = await useAuthStore.getState().getToken();
+      setToken(t);
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!company || !position || !token) return;
+    console.log("Starting analysis SSE...", { company, position, token });
+
+    setOpen({
+      basic: true,
+      issue: true,
+      business: true,
+      positionIssue: true,
+    });
+
+    start({
+      company,
+      position,
+      today: new Date().toISOString().slice(0, 10),
+      analysisDepth: "NORMAL",
+      token,
+    });
+
+    return () => stop();
+  }, [company, position, token]);
+
+  useEffect(() => {
+    if (!isComplete) return;
+
+    setOpen({
+      basic: false,
+      issue: true,
+      business: false,
+      positionIssue: false,
+    });
+  }, [isComplete]);
 
   return (
     <PageLayout>
@@ -80,14 +142,14 @@ export default function Result() {
 
       <QueryText>
         <Text variant="xs" color="gray10">
-          현대오토에버의 MES 시스템 개발 직무에 대해 검색해줘.
+          {company}의 {position} 직무에 대해 검색해줘.
         </Text>
       </QueryText>
 
       <ResultCard>
         <JobTitle>
           <Text variant="sm" color="gray80">
-            🔎 현대오토에버 MES 시스템 개발 직무
+            🔎 {company} {position} 직무
           </Text>
         </JobTitle>
 
@@ -104,66 +166,16 @@ export default function Result() {
               {open.basic ? <ChevronDown /> : <ChevronRight />}
             </SectionHeader>
 
-            {open.basic && (
-              <SectionContent>
-                <p>회사명: 현대오토에버</p>
-                <p>산업: IT 서비스 / 모빌리티</p>
-                <p>주요 고객: 현대자동차그룹</p>
-              </SectionContent>
-            )}
-          </SectionWrapper>
+            <SectionContent $open={open.basic}>
+              {sections.companySummary && (
+                <Text variant="sm">{sections.companySummary}</Text>
+              )}
 
-          {/* 핵심 사업 */}
-          <SectionWrapper>
-            <SectionHeader
-              onClick={() => setOpen((p) => ({ ...p, business: !p.business }))}
-            >
-              <Text variant="base" color="gray95">
-                🔧 핵심 사업
-              </Text>
-              {open.business ? <ChevronDown /> : <ChevronRight />}
-            </SectionHeader>
-
-            {open.business && (
-              <SectionContent>
-                <div>
-                  <ItemTitle>
-                    1. 커넥티드카 플랫폼{" "}
-                    <Pin size={14} className="inline ml-1" />
-                  </ItemTitle>
-                  <ItemDesc>
-                    차량 원격 제어, 실시간 차량 상태 정보, 차량 데이터 수집/가공
-                    차량 내 인포테인먼트(IVI), 디지털 키, 내비게이션 서비스 OTA
-                    업데이트 시스템 구축 및 운영 백엔드 기술: API Gateway,
-                    실시간 스트리밍, 차량 통신 프로토콜
-                  </ItemDesc>
-                </div>
-
-                <div>
-                  <ItemTitle>
-                    2. 모빌리티 서비스 플랫폼{" "}
-                    <Pin size={14} className="inline ml-1" />
-                  </ItemTitle>
-                  <ItemDesc>
-                    차량 호출/예약, 카셰어링, 차량 배차 시스템 위치 기반
-                    서비스(LBS), 실시간 교통 데이터 처리 대규모 트래픽을
-                    처리하는 클라우드 기반 백엔드 인프라 MSA 구조 적용
-                  </ItemDesc>
-                </div>
-
-                <div>
-                  <ItemTitle>
-                    3. 자율주행·지도·검증 시스템{" "}
-                    <Pin size={14} className="inline ml-1" />
-                  </ItemTitle>
-                  <ItemDesc>
-                    고정밀지도(HD Map) 구축 및 업데이트 자율주행 SW 검증
-                    시뮬레이션(HIL/SIL) 주행 데이터 관리 및 AI 판단 모델 학습
-                    분산 데이터 처리, 대용량 로그 수집
-                  </ItemDesc>
-                </div>
-              </SectionContent>
-            )}
+              {loadingStates.companySummary && <TypingIndicator />}
+              {typingStates.companySummary && (
+                <TypingIndicator text="입력 중..." />
+              )}
+            </SectionContent>
           </SectionWrapper>
 
           {/* 최신 주요 이슈 */}
@@ -177,13 +189,64 @@ export default function Result() {
               {open.issue ? <ChevronDown /> : <ChevronRight />}
             </SectionHeader>
 
-            {open.issue && (
-              <SectionContent>
-                <p>• 매출 성장 지속</p>
-                <p>• 차량 SW·모빌리티 플랫폼 투자 확대</p>
-                <p>• 글로벌 SaaS·보안 기업과 협력 강화</p>
-              </SectionContent>
-            )}
+            <SectionContent $open={open.issue}>
+              {sections.companyIssue && (
+                <Text variant="sm">{sections.companyIssue}</Text>
+              )}
+
+              {loadingStates.companyIssue && <TypingIndicator />}
+              {typingStates.companyIssue && (
+                <TypingIndicator text="입력 중..." />
+              )}
+            </SectionContent>
+          </SectionWrapper>
+
+          {/* 핵심 사업 */}
+          <SectionWrapper>
+            <SectionHeader
+              onClick={() => setOpen((p) => ({ ...p, business: !p.business }))}
+            >
+              <Text variant="base" color="gray95">
+                🔧 핵심 사업
+              </Text>
+              {open.business ? <ChevronDown /> : <ChevronRight />}
+            </SectionHeader>
+
+            <SectionContent $open={open.business}>
+              {sections.positionMainBusiness && (
+                <Text variant="sm">{sections.positionMainBusiness}</Text>
+              )}
+
+              {loadingStates.positionMainBusiness && <TypingIndicator />}
+              {typingStates.positionMainBusiness && (
+                <TypingIndicator text="입력 중..." />
+              )}
+            </SectionContent>
+          </SectionWrapper>
+
+          {/* 직무 이슈 */}
+          <SectionWrapper>
+            <SectionHeader
+              onClick={() =>
+                setOpen((p) => ({ ...p, positionIssue: !p.positionIssue }))
+              }
+            >
+              <Text variant="base" color="gray95">
+                🎯 직무 이슈
+              </Text>
+              {open.positionIssue ? <ChevronDown /> : <ChevronRight />}
+            </SectionHeader>
+
+            <SectionContent $open={open.positionIssue}>
+              {sections.positionIssue && (
+                <Text variant="sm">{sections.positionIssue}</Text>
+              )}
+
+              {loadingStates.positionIssue && <TypingIndicator />}
+              {typingStates.positionIssue && (
+                <TypingIndicator text="입력 중..." />
+              )}
+            </SectionContent>
           </SectionWrapper>
 
           {/* 하단 버튼 */}

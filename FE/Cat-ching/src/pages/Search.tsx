@@ -9,6 +9,7 @@ import { useShowCompany } from "@/features/search/hooks/useShowCompany";
 import { useJobInputStore } from "@/stores/jobStore";
 import { useAppStore } from "@/stores/appStore";
 import { useEffect, useState } from "react";
+import { useAnalysisInputStore } from "@/stores/analysisInputStore";
 
 const PageLayout = styled.div`
   ${tw`relative flex flex-col flex-1 w-full items-center`}
@@ -69,12 +70,17 @@ export default function Search() {
   // 직무 관련
   const { job, reset } = useJobInputStore();
   useEffect(() => {
+    reset();
+  }, []);
+
+  useEffect(() => {
     if (!isAutoDetected) return;
     reset();
   }, [isAutoDetected]);
 
   // 페이지 이동
   const { navigate } = useAppStore();
+  const { setInput } = useAnalysisInputStore();
 
   return (
     <PageLayout>
@@ -97,6 +103,7 @@ export default function Search() {
         disabled={!(!!companyValue && !!job)}
         onClick={() => {
           if (!companyValue || !job) return;
+          setInput({ company: companyValue, position: job });
           navigate("analysis");
         }}
       >
