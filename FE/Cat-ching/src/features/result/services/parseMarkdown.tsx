@@ -1,39 +1,52 @@
-interface ParsedSections {
-  companySummary: string;
-  companyIssue: string;
-  positionMainBusiness: string;
-  positionIssue: string;
-}
+import { AnalysisSections } from "@/stores/analysisStore";
 
-/**
- * redis / database에서 내려오는
- * "하나의 마크다운"을 4개 섹션으로 분리
- */
-export const parseMarkdownToSections = (markdown: string): ParsedSections => {
-  const result: ParsedSections = {
+type SectionKey = keyof AnalysisSections;
+
+const SECTION_KEYWORDS: {
+  key: SectionKey;
+  match: RegExp;
+}[] = [
+  { key: "companySummary", match: /기본\s*정보/ },
+  { key: "companyIssue", match: /최근\s*이슈/ },
+  { key: "positionMainBusiness", match: /조사\s*내용/ },
+  { key: "positionIssue", match: /직무\s*관련\s*이슈/ },
+];
+
+export const parseMarkdownToSections = (markdown: string): AnalysisSections => {
+  const result: AnalysisSections = {
     companySummary: "",
     companyIssue: "",
     positionMainBusiness: "",
     positionIssue: "",
   };
 
-  const sections = markdown.split(/^## /gm);
+  const lines = markdown.split("\n");
+  let currentSection: SectionKey | null = null;
 
-  sections.forEach((section) => {
-    if (section.startsWith("회사 기본정보")) {
-      result.companySummary = section.replace("회사 기본정보", "").trim();
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    // 제목 후보 (#, ##, ### ...)
+    if (/^#+\s+/.test(trimmed)) {
+      const title = trimmed.replace(/^#+\s*/, "");
+
+      const matched = SECTION_KEYWORDS.find(({ match }) => match.test(title));
+
+      if (matched) {
+        currentSection = matched.key;
+        continue; // 제목 줄 자체는 내용에 넣지 않음
+      }
     }
-    if (section.startsWith("회사 이슈")) {
-      result.companyIssue = section.replace("회사 이슈", "").trim();
+
+    // 현재 섹션이 정해져 있으면 내용 추가
+    if (currentSection) {
+      result[currentSection] += line + "\n";
     }
-    if (section.startsWith("직무의 메인 사업")) {
-      result.positionMainBusiness = section
-        .replace("직무의 메인 사업", "")
-        .trim();
-    }
-    if (section.startsWith("직무 이슈")) {
-      result.positionIssue = section.replace("직무 이슈", "").trim();
-    }
+  }
+
+  // 후처리 (양쪽 공백 제거)
+  (Object.keys(result) as SectionKey[]).forEach((key) => {
+    result[key] = result[key].trim();
   });
 
   return result;

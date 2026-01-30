@@ -5,7 +5,11 @@ import {
   useAnalysisStore,
 } from "@/stores/analysisStore";
 import { startAnalysisSSE } from "../services/analysisService";
-import { parseMarkdownToSections } from "../services/parseMarkDown";
+import { parseMarkdownToSections } from "../services/parseMarkdown";
+import {
+  removeSectionTitle,
+  SECTION_TITLE_MATCHERS,
+} from "../services/removeSectionTitle";
 
 const SECTION_ORDER: (keyof AnalysisSections)[] = [
   "companySummary",
@@ -22,8 +26,8 @@ export const useAnalysisSSE = () => {
 
   const {
     setSource,
+    source,
     appendSection,
-    setSection,
     setAnalysisId,
     setStatus,
     setComplete,
@@ -39,11 +43,12 @@ export const useAnalysisSSE = () => {
     key: keyof AnalysisSections,
     text: string,
     signal: AbortSignal,
-    speed = 15
+    speed = 40
   ) => {
     setLoading(key, false);
     setTyping(key, true);
 
+    // 단어 단위 타이핑
     const words = text.split(/(\s+)/);
 
     for (const word of words) {
@@ -96,7 +101,7 @@ export const useAnalysisSSE = () => {
 
           onEvent: (event) => {
             const type = event.event;
-            const data = event.data;
+            const data = event.data as any;
 
             switch (type) {
               case "status":
@@ -105,39 +110,75 @@ export const useAnalysisSSE = () => {
                 break;
 
               case "source":
+                console.log("source SSE data:", data);
                 setSource(data as AnalysisSource);
                 break;
 
               /** redis / database */
               case "data":
                 if (!data) return;
-                console.log("data SSE data:", data);
-                const parsed = parseMarkdownToSections(data);
-                setSection("companySummary", parsed.companySummary);
-                setSection("companyIssue", parsed.companyIssue);
-                setSection("positionMainBusiness", parsed.positionMainBusiness);
-                setSection("positionIssue", parsed.positionIssue);
+                if (source == "ai") {
+                  console.log("Ignoring data SSE in AI source mode");
+                  return;
+                }
+
+                let raw = "";
+
+                if (typeof data === "string") {
+                  try {
+                    const parsedJson = JSON.parse(data);
+                    raw = parsedJson.content ?? "";
+                  } catch {
+                    raw = data;
+                  }
+                }
+
+                if (!raw) return;
+
+                console.log("data SSE data:", raw);
+                const parsed = parseMarkdownToSections(raw);
+
+                // sectionBuffers.current = parsed;
+                sectionBuffers.current = {
+                  companySummary: parsed.companySummary,
+                  companyIssue: parsed.companyIssue,
+                  positionMainBusiness: parsed.positionMainBusiness,
+                  positionIssue: parsed.positionIssue,
+                };
                 break;
 
               /** AI 스트리밍 */
               case "company-summary":
                 console.log("company-summary SSE data:", data);
-                sectionBuffers.current.companySummary = data;
+                sectionBuffers.current.companySummary = removeSectionTitle(
+                  data,
+                  SECTION_TITLE_MATCHERS.companySummary
+                );
                 break;
 
               case "company-issue":
                 console.log("company-issue SSE data:", data);
-                sectionBuffers.current.companyIssue = data;
+                sectionBuffers.current.companyIssue = removeSectionTitle(
+                  data,
+                  SECTION_TITLE_MATCHERS.companyIssue
+                );
                 break;
 
               case "position-main-business":
                 console.log("position-main-business SSE data:", data);
-                sectionBuffers.current.positionMainBusiness = data;
+                sectionBuffers.current.positionMainBusiness =
+                  removeSectionTitle(
+                    data,
+                    SECTION_TITLE_MATCHERS.positionMainBusiness
+                  );
                 break;
 
               case "position-issue":
                 console.log("position-issue SSE data:", data);
-                sectionBuffers.current.positionIssue = data;
+                sectionBuffers.current.positionIssue = removeSectionTitle(
+                  data,
+                  SECTION_TITLE_MATCHERS.positionIssue
+                );
                 break;
 
               case "analysisId":

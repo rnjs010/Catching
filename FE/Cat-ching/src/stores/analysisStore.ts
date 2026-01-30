@@ -3,10 +3,10 @@ import { create } from "zustand";
 export type AnalysisSource = "redis" | "database" | "ai" | null;
 
 export interface AnalysisSections {
-  companySummary: string | null;
-  companyIssue: string | null;
-  positionMainBusiness: string | null;
-  positionIssue: string | null;
+  companySummary: string;
+  companyIssue: string;
+  positionMainBusiness: string;
+  positionIssue: string;
 }
 
 interface LoadingStates {
@@ -53,10 +53,10 @@ const initialState = {
   source: null,
   analysisId: null,
   sections: {
-    companySummary: null,
-    companyIssue: null,
-    positionMainBusiness: null,
-    positionIssue: null,
+    companySummary: "",
+    companyIssue: "",
+    positionMainBusiness: "",
+    positionIssue: "",
   },
   loadingStates: {
     companySummary: true,

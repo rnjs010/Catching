@@ -12,6 +12,7 @@ import { useAnalysisInputStore } from "@/stores/analysisInputStore";
 import { useAnalysisSSE } from "@/features/result/hooks/useAnalysis";
 import { useAnalysisStore } from "@/stores/analysisStore";
 import { useAuthStore } from "@/stores/authStore";
+import { MarkdownRender } from "@/features/result/services/markdownRender";
 
 const PageLayout = styled.div`
   ${tw`relative flex flex-col flex-1 w-full items-center`}
@@ -168,7 +169,8 @@ export default function Result() {
 
             <SectionContent $open={open.basic}>
               {sections.companySummary && (
-                <Text variant="sm">{sections.companySummary}</Text>
+                // <Text variant="sm">{sections.companySummary}</Text>
+                <MarkdownRender text={sections.companySummary} />
               )}
 
               {loadingStates.companySummary && <TypingIndicator />}
@@ -191,7 +193,8 @@ export default function Result() {
 
             <SectionContent $open={open.issue}>
               {sections.companyIssue && (
-                <Text variant="sm">{sections.companyIssue}</Text>
+                // <Text variant="sm">{sections.companyIssue}</Text>
+                <MarkdownRender text={sections.companyIssue} />
               )}
 
               {loadingStates.companyIssue && <TypingIndicator />}
@@ -214,7 +217,8 @@ export default function Result() {
 
             <SectionContent $open={open.business}>
               {sections.positionMainBusiness && (
-                <Text variant="sm">{sections.positionMainBusiness}</Text>
+                // <Text variant="sm">{sections.positionMainBusiness}</Text>
+                <MarkdownRender text={sections.positionMainBusiness} />
               )}
 
               {loadingStates.positionMainBusiness && <TypingIndicator />}
@@ -239,7 +243,8 @@ export default function Result() {
 
             <SectionContent $open={open.positionIssue}>
               {sections.positionIssue && (
-                <Text variant="sm">{sections.positionIssue}</Text>
+                // <Text variant="sm">{sections.positionIssue}</Text>
+                <MarkdownRender text={sections.positionIssue} />
               )}
 
               {loadingStates.positionIssue && <TypingIndicator />}
