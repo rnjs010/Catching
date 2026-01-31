@@ -56,6 +56,16 @@ public class NotionApiClient {
                 .body(Map.class);
     }
 
+    public Map fetchPageTitle(String accessToken, String pageId) {
+        return client()
+                .get()
+                .uri("/pages/"+pageId)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+                .header("Notion-Version", notionVersion)
+                .retrieve()
+                .body(Map.class);
+    }
+
     /**
      * 페이지 생성 (/pages)
      * - 기본 페이지 아래 자식 페이지 생성

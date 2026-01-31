@@ -28,6 +28,9 @@ public class NotionOAuthService {
     @Value("${notion.redirect-uri}")
     private String redirectUri;
 
+    @Value("${notion.version}")
+    private String notionVersion;
+
     public Map<String, Object> exchangeCode(String code) {
         // Basic Auth: base64(clientId:clientSecret)
         String raw = clientId + ":" + clientSecret;

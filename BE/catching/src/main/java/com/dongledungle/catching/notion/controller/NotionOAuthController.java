@@ -1,13 +1,16 @@
 package com.dongledungle.catching.notion.controller;
 
+import com.dongledungle.catching.common.response.ApiResponse;
 import com.dongledungle.catching.notion.auth.NotionStateTokenProvider;
-import com.dongledungle.catching.notion.dto.response.NotionOauthUrlResponse;
-import com.dongledungle.catching.notion.service.NotionIntegrationService;
+import com.dongledungle.catching.notion.service.NotionService;
 import com.dongledungle.catching.notion.service.NotionOAuthService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.StreamUtils;
@@ -27,6 +30,7 @@ import java.util.Map;
  *   Notion이 redirect_uri로 호출 -> code를 token으로 교환 -> DB 저장
  *   success/error html 반환
  */
+@Slf4j
 @Controller
 @RequiredArgsConstructor
 @RequestMapping("/api/notion")
@@ -34,7 +38,7 @@ public class NotionOAuthController {
 
     private final NotionStateTokenProvider stateTokenProvider;
     private final NotionOAuthService notionOAuthService;
-    private final NotionIntegrationService notionIntegrationService;
+    private final NotionService notionService;
 
     /**
      * application.yml에서 주입
@@ -50,7 +54,7 @@ public class NotionOAuthController {
 
     @GetMapping(value = "/oauth", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
-    public NotionOauthUrlResponse oauth(Authentication authentication) {
+    public ResponseEntity<ApiResponse<Map<String, String>>> oauth(Authentication authentication) {
         // 프로젝트 표준: principal = userId(String)
         Long userId = Long.parseLong((String) authentication.getPrincipal());
 
@@ -65,7 +69,7 @@ public class NotionOAuthController {
                 + "&redirect_uri=" + urlEncode(redirectUri)
                 + "&state=" + urlEncode(state);
 
-        return new NotionOauthUrlResponse(url);
+        return ResponseEntity.ok(ApiResponse.success(Map.of("url", url)));
     }
 
     /**
@@ -75,7 +79,7 @@ public class NotionOAuthController {
      */
     @GetMapping(value = "/callback", produces = MediaType.TEXT_HTML_VALUE)
     @ResponseBody
-    public String callback(@RequestParam(required = false) String code,
+    public ResponseEntity<String> callback(@RequestParam(required = false) String code,
                            @RequestParam(required = false) String state,
                            @RequestParam(required = false) String error) {
 
@@ -91,7 +95,7 @@ public class NotionOAuthController {
                 Map<String, Object> tokenResponse = notionOAuthService.exchangeCode(code);
 
                 // DB 저장
-                notionIntegrationService.saveToken(userId, tokenResponse);
+                notionService.saveToken(userId, tokenResponse);
 
                 success = true;
             } catch (Exception e) {
@@ -104,12 +108,18 @@ public class NotionOAuthController {
         return loadHtml(success ? "notion/success.html" : "notion/error.html");
     }
 
-    private String loadHtml(String path) {
+    private ResponseEntity<String> loadHtml(String path) {
         try {
             ClassPathResource resource = new ClassPathResource("static/" + path);
-            return StreamUtils.copyToString(resource.getInputStream(), StandardCharsets.UTF_8);
+            String html = StreamUtils.copyToString(resource.getInputStream(), StandardCharsets.UTF_8);
+            return ResponseEntity.ok()
+                    .contentType(MediaType.TEXT_HTML)
+                    .body(html);
         } catch (Exception e) {
-            return "<html><body><h3>Notion 연동 처리 중 오류가 발생했습니다.</h3></body></html>";
+            log.error("HTML 로드 실패", e);
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_TYPE, "text/html; charset=UTF-8")
+                    .body("<html><body><h3>Notion 연동 처리 중 오류가 발생했습니다.</h3></body></html>");
         }
     }
 

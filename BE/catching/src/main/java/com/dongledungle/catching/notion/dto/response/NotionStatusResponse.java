@@ -13,8 +13,5 @@ public class NotionStatusResponse {
     private boolean hasDefaultPage;
     private String defaultPageId;
     private String defaultPageTitle;
-
-    private String workspaceId;
     private String workspaceName;
-    private String botId;
 }

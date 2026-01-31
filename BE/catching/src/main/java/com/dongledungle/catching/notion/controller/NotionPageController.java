@@ -1,16 +1,18 @@
 package com.dongledungle.catching.notion.controller;
 
+import com.dongledungle.catching.common.response.ApiResponse;
+import com.dongledungle.catching.notion.dto.NotionPageDto;
 import com.dongledungle.catching.notion.dto.request.NotionDefaultPageRequest;
-import com.dongledungle.catching.notion.dto.response.NotionPageItemResponse;
 import com.dongledungle.catching.notion.dto.response.NotionStatusResponse;
-import com.dongledungle.catching.notion.entity.Notion;
-import com.dongledungle.catching.notion.service.NotionExportService;
-import com.dongledungle.catching.notion.service.NotionIntegrationService;
+import com.dongledungle.catching.notion.service.NotionService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Notion 설정 관련 컨트롤러
@@ -24,46 +26,31 @@ import java.util.List;
 @RequestMapping("/api/notion")
 public class NotionPageController {
 
-    private final NotionIntegrationService notionIntegrationService;
-    private final NotionExportService notionExportService;
+    private final NotionService notionService;
 
     @GetMapping("/status")
-    public NotionStatusResponse status(Authentication authentication) {
-        Long userId = Long.parseLong((String) authentication.getPrincipal());
-
-        boolean connected = notionIntegrationService.isConnected(userId);
-        if (!connected) {
-            return new NotionStatusResponse(false, false, null, null, null, null, null);
-        }
-
-        Notion notion = notionIntegrationService.getOrThrow(userId);
-
-        return new NotionStatusResponse(
-                true,
-                notion.hasDefaultPage(),
-                notion.getNotionPageId(),
-                notion.getNotionPageName(),
-                notion.getNotionWorkspaceId(),
-                notion.getNotionWorkspaceName(),
-                notion.getNotionBotId()
-        );
+    public ResponseEntity<ApiResponse<NotionStatusResponse>> getStatus(
+            @AuthenticationPrincipal String userId) {
+        return ResponseEntity.ok(ApiResponse.success(notionService.getStatus(Long.parseLong(userId))));
     }
 
     @GetMapping("/pages")
-    public List<NotionPageItemResponse> pages(Authentication authentication) {
-        Long userId = Long.parseLong((String) authentication.getPrincipal());
-        return notionExportService.getTopLevelPages(userId);
+    public ResponseEntity<ApiResponse<Map<String, List<NotionPageDto>>>> getPages(@AuthenticationPrincipal String userId) {
+        List<NotionPageDto> pages = notionService.getAccessiblePages(Long.parseLong(userId));
+        return ResponseEntity.ok(ApiResponse.success(Map.of("pages", pages)));
     }
 
     @PutMapping("/default")
-    public void setDefault(Authentication authentication, @RequestBody NotionDefaultPageRequest req) {
+    public ResponseEntity<ApiResponse<Void>> setDefault(Authentication authentication, @RequestBody NotionDefaultPageRequest req) {
         Long userId = Long.parseLong((String) authentication.getPrincipal());
-        notionIntegrationService.setDefaultPage(userId, req.getPageId(), req.getPageTitle());
+        notionService.setDefaultPage(userId, req.pageId());
+        return ResponseEntity.ok(ApiResponse.success("기본 페이지가 설정되었습니다"));
     }
 
     @DeleteMapping("/disconnect")
-    public void disconnect(Authentication authentication) {
+    public ResponseEntity<ApiResponse<Void>> disconnect(Authentication authentication) {
         Long userId = Long.parseLong((String) authentication.getPrincipal());
-        notionIntegrationService.disconnect(userId);
+        notionService.disconnect(userId);
+        return ResponseEntity.ok(ApiResponse.success("연동이 해제되었습니다"));
     }
 }
