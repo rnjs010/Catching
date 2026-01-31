@@ -4,16 +4,14 @@ import com.dongledungle.catching.analysis.entity.Analysis;
 import com.dongledungle.catching.analysis.repository.AnalysisRepository;
 import com.dongledungle.catching.auth.entity.User;
 import com.dongledungle.catching.auth.repository.UserRepository;
+import com.dongledungle.catching.notion.client.NotionApiClient;
 import com.dongledungle.catching.notion.dto.response.ExportResponse;
 import com.dongledungle.catching.notion.entity.Notion;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -29,11 +27,8 @@ public class NotionExportService {
 
     private final AnalysisRepository analysisRepository;
     private final UserRepository userRepository;
-    private final RestTemplate restTemplate;
+    private final NotionApiClient notionApiClient;
     private final Gson gson = new Gson();
-
-    @Value("${notion.version}")
-    private String notionVersion;
 
     public ExportResponse exportAnalysis(Long userId, Long analysisId) {
         User user = userRepository.findById(userId)
@@ -70,7 +65,6 @@ public class NotionExportService {
         Map<String, Object> lastListItem = null;
 
         for (String line : lines) {
-            String originalLine = line;
             line = line.trim();
 
             if (line.isEmpty()) {
@@ -156,8 +150,10 @@ public class NotionExportService {
     private List<Map<String, Object>> parseRichText(String text) {
         List<Map<String, Object>> richText = new ArrayList<>();
 
-        // [제목]: 링크 패턴 처리
-        Pattern linkPattern = Pattern.compile("\\[(.*?)\\]: (https?://\\S+)");
+        // 1. 표준 마크다운 링크: [제목](URL)
+        // 2. 콜론 기반 링크: [라벨] 제목: URL 또는 제목: URL
+        // 통합 패턴: (\[(.*?)\]\((https?://\S+?)\))|((?:\[.*?\])?.*?):\s*(https?://\S+)
+        Pattern linkPattern = Pattern.compile("(\\[(.*?)\\]\\((https?://\\S+?)\\))|((?:\\[.*?\\])?.*?):\\s*(https?://\\S+)");
         Matcher linkMatcher = linkPattern.matcher(text);
 
         int lastEnd = 0;
@@ -167,9 +163,19 @@ public class NotionExportService {
                 addTextWithBold(richText, text.substring(lastEnd, linkMatcher.start()));
             }
 
-            // 링크 처리
-            String title = linkMatcher.group(1);
-            String url = linkMatcher.group(2);
+            String title;
+            String url;
+
+            if (linkMatcher.group(1) != null) {
+                // 케이스 1: [제목](URL)
+                title = linkMatcher.group(2);
+                url = linkMatcher.group(3);
+            } else {
+                // 케이스 2: [라벨] 제목: URL 또는 제목: URL
+                title = linkMatcher.group(4).trim();
+                url = linkMatcher.group(5);
+            }
+
             richText.add(Map.of(
                     "type", "text",
                     "text", Map.of(
@@ -215,33 +221,42 @@ public class NotionExportService {
     }
 
     private ExportResponse createNotionPage(String accessToken, String parentPageId, String title, List<Map<String, Object>> blocks) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(accessToken);
-        headers.set("Notion-Version", notionVersion);
-        headers.setContentType(MediaType.APPLICATION_JSON);
+        // 1. 블록 100개씩 분할 (Notion API 제한 대응)
+        int batchSize = 100;
+        List<List<Map<String, Object>>> partitions = new ArrayList<>();
+        for (int i = 0; i < blocks.size(); i += batchSize) {
+            partitions.add(blocks.subList(i, Math.min(i + batchSize, blocks.size())));
+        }
 
-        Map<String, Object> body = Map.of(
-                "parent", Map.of("page_id", parentPageId),
-                "properties", Map.of(
-                        "title", Map.of(
-                                "title", List.of(Map.of(
-                                        "text", Map.of("content", title)
-                                ))
-                        )
-                ),
-                "children", blocks
-        );
+        // 2. 첫 100개로 페이지 생성
+        List<Map<String, Object>> firstBatch = partitions.isEmpty() ? new ArrayList<>() : partitions.get(0);
+        
+        Map<String, Object> body = new HashMap<>();
+        body.put("parent", Map.of("page_id", parentPageId));
+        body.put("properties", Map.of(
+                "title", Map.of(
+                        "title", List.of(Map.of(
+                                "text", Map.of("content", title)
+                        ))
+                )
+        ));
+        
+        if (!firstBatch.isEmpty()) {
+            body.put("children", firstBatch);
+        }
 
-        ResponseEntity<Map> response = restTemplate.postForEntity(
-                "https://api.notion.com/v1/pages",
-                new HttpEntity<>(body, headers),
-                Map.class
-        );
+        Map result = notionApiClient.createPage(accessToken, body);
+        String pageId = (String) result.get("id");
+        String url = (String) result.get("url");
 
-        Map<String, Object> result = response.getBody();
-        return new ExportResponse(
-                (String) result.get("url"),
-                (String) result.get("id")
-        );
+        // 3. 나머지 블록이 있다면 Append (PATCH /blocks/{id}/children)
+        for (int i = 1; i < partitions.size(); i++) {
+            List<Map<String, Object>> nextBatch = partitions.get(i);
+            Map<String, Object> appendBody = Map.of("children", nextBatch);
+            notionApiClient.appendChildren(accessToken, pageId, appendBody);
+            log.info("Batch {} ({} blocks) appended to page {}", i + 1, nextBatch.size(), pageId);
+        }
+
+        return new ExportResponse(url, pageId);
     }
 }

@@ -56,6 +56,9 @@ public class NotionApiClient {
                 .body(Map.class);
     }
 
+    /**
+     * 페이지 제목 조회
+     */
     public Map fetchPageTitle(String accessToken, String pageId) {
         return client()
                 .get()
