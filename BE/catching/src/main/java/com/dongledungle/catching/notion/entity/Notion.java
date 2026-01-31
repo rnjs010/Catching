@@ -1,6 +1,7 @@
 package com.dongledungle.catching.notion.entity;
 
 import com.dongledungle.catching.auth.entity.User;
+import com.dongledungle.catching.common.converter.EncryptionConverter;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -30,6 +31,7 @@ public class Notion {
     @JoinColumn(name = "user_id")
     private User user;
 
+    @Convert(converter = EncryptionConverter.class)
     @Column(name = "notion_access_token", nullable = false, length = 2000)
     private String notionAccessToken;
 
@@ -37,6 +39,7 @@ public class Notion {
      * 현재 DB 스키마가 NOT NULL이라서,
      * Notion OAuth 응답에 refresh_token이 없으면 저장이 불가능합니다.
      */
+    @Convert(converter = EncryptionConverter.class)
     @Column(name = "notion_refresh_token", nullable = false, length = 2000)
     private String notionRefreshToken;
 
@@ -45,10 +48,10 @@ public class Notion {
      * 사용자가 페이지 선택하면 실제 pageId로 업데이트합니다.
      */
     @Column(name = "notion_page_id", nullable = false)
-    private String notionPageId;
+    private String notionDefaultPageId;
 
     @Column(name = "notion_page_name")
-    private String notionPageName;
+    private String notionDefaultPageName;
 
     @Column(name = "notion_workspace_id")
     private String notionWorkspaceId;
@@ -59,8 +62,19 @@ public class Notion {
     @Column(name = "notion_bot_id")
     private String notionBotId;
 
-    // -------- 편의 메서드 --------
-    public boolean hasDefaultPage() {
-        return notionPageId != null && !"UNSET".equals(notionPageId) && !notionPageId.isBlank();
+    // -------- 편의 메서드 -------
+    // public boolean hasDefaultPage() # User 엔티티로 이동
+
+    public void updateTokens(String accessToken, String refreshToken, String botId, String workspaceId, String workspaceName) {
+        this.notionAccessToken = accessToken;
+        this.notionRefreshToken = refreshToken;
+        this.notionBotId = botId;
+        this.notionWorkspaceId = workspaceId;
+        this.notionWorkspaceName = workspaceName;
+    }
+
+    public void updateDefaultPage(String pageId, String pageName) {
+        this.notionDefaultPageId = pageId;
+        this.notionDefaultPageName = pageName;
     }
 }
