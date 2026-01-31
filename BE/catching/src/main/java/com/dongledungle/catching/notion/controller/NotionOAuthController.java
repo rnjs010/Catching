@@ -105,12 +105,12 @@ public class NotionOAuthController {
         }
 
         // success/error static html 반환
-        return loadHtml(success ? "notion/success.html" : "notion/error.html");
+        return loadHtml(success ? "success.html" : "error.html");
     }
 
     private ResponseEntity<String> loadHtml(String path) {
         try {
-            ClassPathResource resource = new ClassPathResource("static/" + path);
+            ClassPathResource resource = new ClassPathResource("templates/notion/" + path);
             String html = StreamUtils.copyToString(resource.getInputStream(), StandardCharsets.UTF_8);
             return ResponseEntity.ok()
                     .contentType(MediaType.TEXT_HTML)
