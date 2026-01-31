@@ -1,116 +1,247 @@
 package com.dongledungle.catching.notion.service;
 
-import com.dongledungle.catching.notion.client.NotionApiClient;
-import com.dongledungle.catching.notion.dto.response.NotionPageItemResponse;
+import com.dongledungle.catching.analysis.entity.Analysis;
+import com.dongledungle.catching.analysis.repository.AnalysisRepository;
+import com.dongledungle.catching.auth.entity.User;
+import com.dongledungle.catching.auth.repository.UserRepository;
+import com.dongledungle.catching.notion.dto.response.ExportResponse;
 import com.dongledungle.catching.notion.entity.Notion;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-/**
- * Notion 페이지 목록 조회 / export 기능 담당
- *
- * 핵심:
- * - Search API는 하위 페이지까지 다 내려줄 수 있으니
- *   parent.type == "workspace" 인 최상위 페이지만 필터링합니다.
- */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class NotionExportService {
 
-    private final NotionIntegrationService notionIntegrationService;
-    private final NotionApiClient notionApiClient;
+    private final AnalysisRepository analysisRepository;
+    private final UserRepository userRepository;
+    private final RestTemplate restTemplate;
+    private final Gson gson = new Gson();
 
-    public List<NotionPageItemResponse> getTopLevelPages(Long userId) {
-        Notion notion = notionIntegrationService.getOrThrow(userId);
-        String accessToken = notion.getNotionAccessToken();
+    @Value("${notion.version}")
+    private String notionVersion;
 
-        Map<String, Object> body = Map.of(
-                "page_size", 50,
-                "filter", Map.of("property", "object", "value", "page")
-        );
+    public ExportResponse exportAnalysis(Long userId, Long analysisId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
-        Map result = notionApiClient.search(accessToken, body);
-        Object resultsObj = result.get("results");
-
-        if (!(resultsObj instanceof List<?> results)) {
-            return List.of();
+        Notion notion = user.getNotion();
+        if (notion == null || notion.getNotionAccessToken() == null) {
+            throw new IllegalStateException("Notion 연동이 필요합니다.");
         }
 
-        List<NotionPageItemResponse> out = new ArrayList<>();
-        for (Object o : results) {
-            if (!(o instanceof Map page)) continue;
-
-            // 최상위 페이지 필터: parent.type == workspace
-            Object parentObj = page.get("parent");
-            if (!(parentObj instanceof Map parent)) continue;
-
-            Object typeObj = parent.get("type");
-            if (typeObj == null || !"workspace".equals(String.valueOf(typeObj))) continue;
-
-            String id = String.valueOf(page.get("id"));
-            String title = extractTitleFallback(page);
-
-            out.add(new NotionPageItemResponse(id, title));
+        if (notion.getNotionDefaultPageId() == null || notion.getNotionDefaultPageId().isEmpty()) {
+            throw new IllegalStateException("기본 저장 페이지를 먼저 설정해주세요.");
         }
 
-        return out;
+        Analysis analysis = analysisRepository.findById(analysisId)
+                .orElseThrow(() -> new IllegalArgumentException("분석 정보를 찾을 수 없습니다."));
+
+        // JSON 파싱
+        JsonObject jsonObject = gson.fromJson(analysis.getContent(), JsonObject.class);
+        String markdownContent = jsonObject.get("content").getAsString();
+
+        // Notion 블록 생성
+        List<Map<String, Object>> blocks = parseMarkdownToBlocks(markdownContent);
+
+        // Notion API 호출
+        String title = analysis.getCompany() + " - " + analysis.getPosition();
+        return createNotionPage(notion.getNotionAccessToken(), notion.getNotionDefaultPageId(), title, blocks);
     }
 
-    /**
-     * 기본 페이지 밑에 자식 페이지 생성 + blocks append
-     * - blocks는 최대 100개씩 나눠서 append
-     */
-    public Map<String, Object> export(Long userId, String title, List<Map<String, Object>> blocks) {
-        Notion notion = notionIntegrationService.getOrThrow(userId);
+    private List<Map<String, Object>> parseMarkdownToBlocks(String markdown) {
+        List<Map<String, Object>> blocks = new ArrayList<>();
+        String[] lines = markdown.split("\n");
 
-        if (!notion.hasDefaultPage()) {
-            throw new IllegalStateException("기본 페이지가 설정되지 않았습니다.");
-        }
+        Map<String, Object> lastListItem = null;
 
-        String accessToken = notion.getNotionAccessToken();
-        String parentPageId = notion.getNotionPageId();
+        for (String line : lines) {
+            String originalLine = line;
+            line = line.trim();
 
-        // 1) child page 생성
-        Map<String, Object> createBody = Map.of(
-                "parent", Map.of("type", "page_id", "page_id", parentPageId),
-                "properties", Map.of(
-                        "title", Map.of("title", List.of(
-                                Map.of("type", "text", "text", Map.of("content", title))
-                        ))
-                )
-        );
+            if (line.isEmpty()) {
+                lastListItem = null;
+                continue;
+            }
 
-        Map created = notionApiClient.createPage(accessToken, createBody);
-        String pageId = created.get("id") != null ? String.valueOf(created.get("id")) : null;
-
-        // 2) blocks append (100개씩)
-        if (pageId != null && blocks != null && !blocks.isEmpty()) {
-            final int batchSize = 100;
-            for (int i = 0; i < blocks.size(); i += batchSize) {
-                int end = Math.min(i + batchSize, blocks.size());
-                List<Map<String, Object>> batch = blocks.subList(i, end);
-
-                Map<String, Object> appendBody = Map.of("children", batch);
-                notionApiClient.appendChildren(accessToken, pageId, appendBody);
+            if (line.startsWith("### ")) {
+                lastListItem = null;
+                blocks.add(createHeadingBlock(3, line.substring(4)));
+            } else if (line.startsWith("## ")) {
+                lastListItem = null;
+                blocks.add(createHeadingBlock(2, line.substring(3)));
+            } else if (line.startsWith("# ")) {
+                lastListItem = null;
+                blocks.add(createHeadingBlock(1, line.substring(2)));
+            } else if (line.startsWith("- ")) {
+                Map<String, Object> listItem = createBulletedListItemBlock(line.substring(2));
+                blocks.add(listItem);
+                lastListItem = listItem;
+            } else {
+                // 리스트 바로 다음 줄이면서 들여쓰기가 있거나 마커가 없는 경우 하위 요소로 처리
+                if (lastListItem != null) {
+                    addChildToBlock(lastListItem, createParagraphBlock(line));
+                } else {
+                    blocks.add(createParagraphBlock(line));
+                }
             }
         }
+        return blocks;
+    }
 
-        // 3) Notion 페이지 URL(간단 버전)
-        String url = pageId == null ? null : "https://www.notion.so/" + pageId.replace("-", "");
+    private void addChildToBlock(Map<String, Object> parent, Map<String, Object> child) {
+        String type = (String) parent.get("type");
+        Map<String, Object> content = (Map<String, Object>) parent.get(type);
 
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> children = (List<Map<String, Object>>) content.get("children");
+        if (children == null) {
+            children = new ArrayList<>();
+            content.put("children", children);
+        }
+        children.add(child);
+    }
+
+    private Map<String, Object> createHeadingBlock(int level, String text) {
+        String type = "heading_" + level;
+        Map<String, Object> block = new HashMap<>();
+        block.put("object", "block");
+        block.put("type", type);
+
+        Map<String, Object> content = new HashMap<>();
+        content.put("rich_text", parseRichText(text));
+        block.put(type, content);
+
+        return block;
+    }
+
+    private Map<String, Object> createBulletedListItemBlock(String text) {
+        Map<String, Object> block = new HashMap<>();
+        block.put("object", "block");
+        block.put("type", "bulleted_list_item");
+
+        Map<String, Object> content = new HashMap<>();
+        content.put("rich_text", parseRichText(text));
+        block.put("bulleted_list_item", content);
+
+        return block;
+    }
+
+    private Map<String, Object> createParagraphBlock(String text) {
+        Map<String, Object> block = new HashMap<>();
+        block.put("object", "block");
+        block.put("type", "paragraph");
+
+        Map<String, Object> content = new HashMap<>();
+        content.put("rich_text", parseRichText(text));
+        block.put("paragraph", content);
+
+        return block;
+    }
+
+    private List<Map<String, Object>> parseRichText(String text) {
+        List<Map<String, Object>> richText = new ArrayList<>();
+
+        // [제목]: 링크 패턴 처리
+        Pattern linkPattern = Pattern.compile("\\[(.*?)\\]: (https?://\\S+)");
+        Matcher linkMatcher = linkPattern.matcher(text);
+
+        int lastEnd = 0;
+        while (linkMatcher.find()) {
+            // 링크 이전 텍스트 처리
+            if (linkMatcher.start() > lastEnd) {
+                addTextWithBold(richText, text.substring(lastEnd, linkMatcher.start()));
+            }
+
+            // 링크 처리
+            String title = linkMatcher.group(1);
+            String url = linkMatcher.group(2);
+            richText.add(Map.of(
+                    "type", "text",
+                    "text", Map.of(
+                            "content", title,
+                            "link", Map.of("url", url)
+                    )
+            ));
+            lastEnd = linkMatcher.end();
+        }
+
+        // 남은 텍스트 처리
+        if (lastEnd < text.length()) {
+            addTextWithBold(richText, text.substring(lastEnd));
+        }
+
+        return richText;
+    }
+
+    private void addTextWithBold(List<Map<String, Object>> richText, String text) {
+        Pattern boldPattern = Pattern.compile("\\*\\*(.*?)\\*\\*");
+        Matcher boldMatcher = boldPattern.matcher(text);
+
+        int lastEnd = 0;
+        while (boldMatcher.find()) {
+            if (boldMatcher.start() > lastEnd) {
+                richText.add(createTextPart(text.substring(lastEnd, boldMatcher.start()), false));
+            }
+            richText.add(createTextPart(boldMatcher.group(1), true));
+            lastEnd = boldMatcher.end();
+        }
+
+        if (lastEnd < text.length()) {
+            richText.add(createTextPart(text.substring(lastEnd), false));
+        }
+    }
+
+    private Map<String, Object> createTextPart(String content, boolean isBold) {
         return Map.of(
-                "pageId", pageId,
-                "url", url
+                "type", "text",
+                "text", Map.of("content", content),
+                "annotations", Map.of("bold", isBold)
         );
     }
 
-    /**
-     * 페이지 title 파싱은 워크스페이스마다 property key가 달라 일반화가 어렵습니다.
-     * 일단 "Untitled" fallback으로 두고, 나중에 필요하면 개선하세요.
-     */
-    private String extractTitleFallback(Map page) {
-        return "Untitled";
+    private ExportResponse createNotionPage(String accessToken, String parentPageId, String title, List<Map<String, Object>> blocks) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+        headers.set("Notion-Version", notionVersion);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        Map<String, Object> body = Map.of(
+                "parent", Map.of("page_id", parentPageId),
+                "properties", Map.of(
+                        "title", Map.of(
+                                "title", List.of(Map.of(
+                                        "text", Map.of("content", title)
+                                ))
+                        )
+                ),
+                "children", blocks
+        );
+
+        ResponseEntity<Map> response = restTemplate.postForEntity(
+                "https://api.notion.com/v1/pages",
+                new HttpEntity<>(body, headers),
+                Map.class
+        );
+
+        Map<String, Object> result = response.getBody();
+        return new ExportResponse(
+                (String) result.get("url"),
+                (String) result.get("id")
+        );
     }
 }
