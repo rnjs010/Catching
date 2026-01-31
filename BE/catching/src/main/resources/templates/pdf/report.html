@@ -1,0 +1,146 @@
+<html xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      @page {
+        size: A4;
+        margin: 20mm;
+        @bottom-center {
+          content: element(footer);
+        }
+      }
+      body {
+        font-family: "Pretendard", sans-serif;
+        font-size: 11pt;
+        line-height: 1.6;
+        color: #333;
+        margin: 0;
+        padding: 0;
+      }
+      a {
+        color: #666;
+        text-decoration: none;
+      }
+      .date-line,
+      .link-line {
+        display: block;
+        margin-top: 4px;
+        margin-bottom: 4px;
+        line-height: 1.4;
+      }
+      .header {
+        text-align: center;
+        border-bottom: 2px solid #007aff;
+        padding-bottom: 10px;
+        margin-bottom: 30px;
+      }
+      .title {
+        color: #007aff;
+        font-size: 24pt;
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+      .subtitle {
+        font-size: 14pt;
+        color: #555;
+      }
+      .info-box {
+        background-color: #f8faff;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 25px;
+        border-left: 4px solid #007aff;
+      }
+      .section-title {
+        font-size: 16pt;
+        font-weight: bold;
+        color: #007aff;
+        margin-top: 30px;
+        margin-bottom: 15px;
+        border-bottom: 1px solid #e1e4e8;
+        padding-bottom: 5px;
+      }
+      .content {
+        margin-bottom: 40px;
+      }
+      /* Markdown Style Overrides */
+      h1,
+      h2,
+      h3 {
+        color: #0056b3;
+        margin-top: 20px;
+      }
+      ul,
+      ol {
+        padding-left: 20px;
+      }
+      li {
+        margin-bottom: 4px;
+      }
+      code {
+        background-color: #eee;
+        padding: 2px 4px;
+        border-radius: 4px;
+      }
+      blockquote {
+        border-left: 3px solid #ccc;
+        padding-left: 15px;
+        color: #666;
+        font-style: italic;
+      }
+
+      .page-break {
+        page-break-before: always;
+      }
+
+      .footer {
+        position: running(footer);
+        text-align: center;
+        font-size: 10pt;
+        color: #999;
+      }
+      .footer .page-number:after {
+        content: "- " counter(page) " -";
+      }
+    </style>
+  </head>
+  <body>
+    <div class="footer">
+      <div>
+        &#169; <span th:text="${year != null ? year : '2026'}"></span> TEAM
+        동글동글 - Catching AI Report Service
+      </div>
+      <div class="page-number"></div>
+    </div>
+
+    <div class="header">
+      <div
+        class="title"
+        th:text="${title != null ? title : 'Cat-ching 기업 리포트'}"
+      >
+        Cat-ching 기업 리포트
+      </div>
+      <div class="subtitle" th:text="${company} + ' - ' + ${position}"></div>
+    </div>
+
+    <!-- 기본 정보 섹션 -->
+    <div class="info-box" th:if="${company != null or position != null}">
+      <div th:if="${company != null}">
+        <strong>분석 대상:</strong> <span th:text="${company}"></span>
+      </div>
+      <div th:if="${position != null}">
+        <strong>희망 직무:</strong> <span th:text="${position}"></span>
+      </div>
+      <div th:if="${today != null}">
+        <strong>분석 일자:</strong> <span th:text="${today}"></span>
+      </div>
+    </div>
+
+    <!-- 분석 데이터 -->
+    <div
+      class="content"
+      th:if="${contentHtml != null}"
+      th:utext="${contentHtml}"
+    ></div>
+  </body>
+</html>
