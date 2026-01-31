@@ -34,13 +34,13 @@ export const notionService = {
   // 허용된 페이지 목록 조회
   getNotionPages: async (): Promise<NotionPage[]> => {
     const response = await api.get("/notion/pages");
-    return response.data;
+    return response.data.pages;
   },
 
   // 기본 페이지 변경
   updateDefaultPage: async (
     pageId: string,
-    pageName: string
+    pageName: string,
   ): Promise<void> => {
     await api.put("/notion/default", { pageId, pageName });
   },
@@ -48,5 +48,10 @@ export const notionService = {
   // Notion 연동 해제
   disconnectNotion: async (): Promise<void> => {
     await api.delete("/notion/disconnect");
+  },
+
+  // 분석 결과 Notion으로 내보내기
+  exportToNotion: async (analysisId: number): Promise<void> => {
+    await api.post("/notion/export", { analysisId });
   },
 };

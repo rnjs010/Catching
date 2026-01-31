@@ -46,6 +46,11 @@ interface AnalysisState {
 
   setStatus: (status: string) => void;
   setComplete: () => void;
+  setAllSections: (params: {
+    sections: AnalysisSections;
+    analysisId: number;
+    source: AnalysisSource;
+  }) => void;
   reset: () => void;
 }
 
@@ -122,6 +127,26 @@ export const useAnalysisStore = create<AnalysisState>((set) => ({
   setStatus: (status) => set({ status }),
 
   setComplete: () => set({ isComplete: true }),
+
+  setAllSections: ({ sections, analysisId, source }) =>
+    set({
+      sections,
+      analysisId,
+      source,
+      isComplete: true,
+      loadingStates: {
+        companySummary: false,
+        companyIssue: false,
+        positionMainBusiness: false,
+        positionIssue: false,
+      },
+      typingStates: {
+        companySummary: false,
+        companyIssue: false,
+        positionMainBusiness: false,
+        positionIssue: false,
+      },
+    }),
 
   reset: () => set(initialState),
 }));

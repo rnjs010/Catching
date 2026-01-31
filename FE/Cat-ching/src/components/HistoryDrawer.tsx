@@ -9,10 +9,13 @@ import { Text } from "@/styles/typography";
 import PillButton from "./PillButton";
 import { useAuthStore } from "@/stores/authStore";
 import { useAppStore } from "@/stores/appStore";
+import { useAnalysisInputStore } from "@/stores/analysisInputStore";
+import { useAnalysisStore } from "@/stores/analysisStore";
 import { historyService } from "@/services/historyService";
 import { HistoryItemResponse } from "@/types/history";
 import AlertPopup from "./AlertPopup";
 import { colors } from "@/styles/colors";
+import { parseMarkdownToSections } from "@/features/result/services/parseMarkdown";
 
 interface HistoryDrawerProps {
   isOpen: boolean;
@@ -116,7 +119,7 @@ export default function HistoryDrawer({ isOpen, onClose }: HistoryDrawerProps) {
     if (isOpen && itemsRef.current.length > 0) {
       const newItems = itemsRef.current.slice(
         prevCountRef.current,
-        visibleCount
+        visibleCount,
       );
 
       if (newItems.length > 0) {
@@ -130,7 +133,7 @@ export default function HistoryDrawer({ isOpen, onClose }: HistoryDrawerProps) {
             stagger: 0.05,
             ease: "power2.out",
             overwrite: true,
-          }
+          },
         );
       }
       prevCountRef.current = visibleCount;
@@ -184,12 +187,39 @@ export default function HistoryDrawer({ isOpen, onClose }: HistoryDrawerProps) {
     setVisibleCount((prev) => prev + 10);
   };
 
-  const handleItemClick = async (companyPositionId: number) => {
+  const handleItemClick = async (item: HistoryItemResponse) => {
     try {
-      const analysisData = await historyService.getHistoryAnalysis(
-        companyPositionId
+      const response = await historyService.getHistoryAnalysis(
+        item.companyPositionId,
       );
-      console.log("Analysis Result:", analysisData);
+
+      useAnalysisInputStore.getState().setInput({
+        company: item.company,
+        position: item.position,
+      });
+
+      // 결과 데이터 파싱 및 스토어 설정
+      let rawContent = "";
+      if (typeof response.content === "string") {
+        rawContent = response.content;
+      } else if (
+        response.content &&
+        typeof response.content.content === "string"
+      ) {
+        rawContent = response.content.content;
+      }
+
+      const sections = parseMarkdownToSections(rawContent);
+
+      useAnalysisStore.getState().setAllSections({
+        sections,
+        analysisId: response.analysisId || item.companyPositionId,
+        source: response.source || "database",
+      });
+
+      // 분석 페이지로 이동
+      navigate("analysis");
+      onClose();
     } catch (error) {
       console.error("Failed to fetch analysis:", error);
     }
@@ -235,7 +265,7 @@ export default function HistoryDrawer({ isOpen, onClose }: HistoryDrawerProps) {
                       ref={setItemRef(index)}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      onClick={() => handleItemClick(item.companyPositionId)}
+                      onClick={() => handleItemClick(item)}
                     >
                       <CompanyName>{item.company}</CompanyName>
                       <Position>{item.position}</Position>
