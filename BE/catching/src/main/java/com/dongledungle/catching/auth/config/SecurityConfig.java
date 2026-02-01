@@ -1,6 +1,7 @@
 package com.dongledungle.catching.auth.config;
 
 import com.dongledungle.catching.auth.jwt.filter.JwtAuthenticationFilter;
+import jakarta.servlet.DispatcherType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -44,6 +45,7 @@ public class SecurityConfig {
 
                 // 인증 규칙 설정
                 .authorizeHttpRequests(auth -> auth
+                        .dispatcherTypeMatchers(DispatcherType.ASYNC).permitAll()
                         // 인증 없이 접근 가능한 경로
                         .requestMatchers("/api/auth/login").permitAll()  // 로그인
                         .requestMatchers("/api/auth/refresh").permitAll() // 토큰 갱신

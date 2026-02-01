@@ -7,6 +7,7 @@ import com.dongledungle.catching.analysis.entity.Analysis;
 import com.dongledungle.catching.analysis.service.AnalysisService;
 import com.dongledungle.catching.analysis.service.AnalysisService.CacheResult;
 import com.dongledungle.catching.analysis.service.GeminiService;
+import com.dongledungle.catching.analysis.service.UrlResolverService;
 import com.dongledungle.catching.auth.entity.User;
 import com.dongledungle.catching.common.response.ApiResponse;
 import com.dongledungle.catching.common.util.JsonParserUtil;
@@ -41,6 +42,7 @@ public class AnalysisController {
     private final GeminiService geminiService;
     private final AnalysisService analysisService;
     private final HistoryService historyService;
+    private final UrlResolverService urlResolverService;
     private final Gson gson = new Gson();
 
     private static final int MAX_AUTO_RETRIES = 2;
@@ -374,8 +376,9 @@ public class AnalysisController {
      * 분석 결과 저장 (타입 구분)
      */
     private long saveAnalysisResult(AnalysisRequestDto request, String content, boolean isJson) {
+        String resolvedContent = urlResolverService.replaceAllRedirectUrls(content);
         // JSON이 아닌 경우 JSON 형식으로 래핑
-        String contentToSave = isJson ? content : wrapTextAsJson(content);
+        String contentToSave = isJson ? resolvedContent : wrapTextAsJson(resolvedContent);
 
         long analysisId = analysisService.saveAnalysisToDatabase(
                 request.getCompany(), request.getPosition(), contentToSave);
