@@ -44,7 +44,7 @@ export function MarkdownRender({ text }: { text: string }) {
           <h3 className="text-base font-semibold mt-4 mb-1" {...props} />
         ),
         li: ({ node, ...props }) => (
-          <li className="ml-6 list-disc" {...props} />
+          <li className="ml-6 list-disc mt-1" {...props} />
         ),
         strong: ({ children }) => {
           const text = React.Children.toArray(children)

@@ -1,12 +1,11 @@
 import { AnalysisSections } from "@/stores/analysisStore";
 
-export const SECTION_TITLE_MATCHERS: Record<keyof AnalysisSections, RegExp[]> =
-  {
-    companySummary: [/기본\s*정보/],
-    companyIssue: [/최근\s*이슈/],
-    positionMainBusiness: [/조사\s*내용/],
-    positionIssue: [/직무\s*관련\s*이슈/],
-  };
+export const SECTION_KEYWORDS: Record<keyof AnalysisSections, RegExp[]> = {
+  companySummary: [/기본\s*정보/],
+  companyIssue: [/최근\s*이슈/],
+  positionMainBusiness: [/조사\s*내용/],
+  positionIssue: [/직무\s*관련\s*이슈/],
+};
 
 export function removeSectionTitle(text: string, keywords: RegExp[]): string {
   if (!text) return text;

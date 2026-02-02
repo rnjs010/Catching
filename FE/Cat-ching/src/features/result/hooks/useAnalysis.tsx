@@ -8,8 +8,9 @@ import { startAnalysisSSE } from "../services/analysisService";
 import { parseMarkdownToSections } from "../services/parseMarkdown";
 import {
   removeSectionTitle,
-  SECTION_TITLE_MATCHERS,
+  SECTION_KEYWORDS,
 } from "../services/removeSectionTitle";
+import { API_BASE_URL } from "@/config/env";
 
 const SECTION_ORDER: (keyof AnalysisSections)[] = [
   "companySummary",
@@ -85,8 +86,6 @@ export const useAnalysisSSE = () => {
       const controller = new AbortController();
       abortRef.current = controller;
 
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-
       try {
         await startAnalysisSSE({
           url: `${API_BASE_URL}/analysis/text`,
@@ -152,7 +151,7 @@ export const useAnalysisSSE = () => {
                 console.log("company-summary SSE data:", data);
                 sectionBuffers.current.companySummary = removeSectionTitle(
                   data,
-                  SECTION_TITLE_MATCHERS.companySummary
+                  SECTION_KEYWORDS.companySummary
                 );
                 break;
 
@@ -160,7 +159,7 @@ export const useAnalysisSSE = () => {
                 console.log("company-issue SSE data:", data);
                 sectionBuffers.current.companyIssue = removeSectionTitle(
                   data,
-                  SECTION_TITLE_MATCHERS.companyIssue
+                  SECTION_KEYWORDS.companyIssue
                 );
                 break;
 
@@ -169,7 +168,7 @@ export const useAnalysisSSE = () => {
                 sectionBuffers.current.positionMainBusiness =
                   removeSectionTitle(
                     data,
-                    SECTION_TITLE_MATCHERS.positionMainBusiness
+                    SECTION_KEYWORDS.positionMainBusiness
                   );
                 break;
 
@@ -177,7 +176,7 @@ export const useAnalysisSSE = () => {
                 console.log("position-issue SSE data:", data);
                 sectionBuffers.current.positionIssue = removeSectionTitle(
                   data,
-                  SECTION_TITLE_MATCHERS.positionIssue
+                  SECTION_KEYWORDS.positionIssue
                 );
                 break;
 

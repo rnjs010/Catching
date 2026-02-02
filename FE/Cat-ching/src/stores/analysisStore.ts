@@ -2,26 +2,20 @@ import { create } from "zustand";
 
 export type AnalysisSource = "redis" | "database" | "ai" | null;
 
-export interface AnalysisSections {
-  companySummary: string;
-  companyIssue: string;
-  positionMainBusiness: string;
-  positionIssue: string;
-}
+export const ANALYSIS_SECTION_KEYS = [
+  "companySummary",
+  "companyIssue",
+  "positionMainBusiness",
+  "positionIssue",
+] as const;
 
-interface LoadingStates {
-  companySummary: boolean;
-  companyIssue: boolean;
-  positionMainBusiness: boolean;
-  positionIssue: boolean;
-}
+export type AnalysisSectionKey = (typeof ANALYSIS_SECTION_KEYS)[number];
 
-interface TypingStates {
-  companySummary: boolean;
-  companyIssue: boolean;
-  positionMainBusiness: boolean;
-  positionIssue: boolean;
-}
+type SectionStateMap<T> = Record<AnalysisSectionKey, T>;
+
+export interface AnalysisSections extends SectionStateMap<string> {}
+type LoadingStates = SectionStateMap<boolean>;
+type TypingStates = SectionStateMap<boolean>;
 
 interface AnalysisState {
   source: AnalysisSource;
@@ -33,60 +27,56 @@ interface AnalysisState {
 
   status: string;
   isComplete: boolean;
+}
 
-  /** actions */
+interface AnalysisActions {
   setSource: (source: AnalysisSource) => void;
   setAnalysisId: (id: number) => void;
 
-  appendSection: (key: keyof AnalysisSections, text: string) => void;
-  setSection: (key: keyof AnalysisSections, text: string) => void;
+  appendSection: (key: AnalysisSectionKey, text: string) => void;
+  setSection: (key: AnalysisSectionKey, text: string) => void;
 
-  setLoading: (key: keyof LoadingStates, value: boolean) => void;
-  setTyping: (key: keyof TypingStates, value: boolean) => void;
+  setLoading: (key: AnalysisSectionKey, value: boolean) => void;
+  setTyping: (key: AnalysisSectionKey, value: boolean) => void;
 
   setStatus: (status: string) => void;
   setComplete: () => void;
+
   setAllSections: (params: {
     sections: AnalysisSections;
     analysisId: number;
     source: AnalysisSource;
   }) => void;
+
   reset: () => void;
 }
+
+type AnalysisStore = AnalysisState & AnalysisActions;
+
+const createSectionState = <T>(initialValue: T): SectionStateMap<T> => {
+  return ANALYSIS_SECTION_KEYS.reduce((acc, key) => {
+    acc[key] = initialValue;
+    return acc;
+  }, {} as SectionStateMap<T>);
+};
 
 const initialState = {
   source: null,
   analysisId: null,
-  sections: {
-    companySummary: "",
-    companyIssue: "",
-    positionMainBusiness: "",
-    positionIssue: "",
-  },
-  loadingStates: {
-    companySummary: true,
-    companyIssue: true,
-    positionMainBusiness: true,
-    positionIssue: true,
-  },
-  typingStates: {
-    companySummary: false,
-    companyIssue: false,
-    positionMainBusiness: false,
-    positionIssue: false,
-  },
+  sections: createSectionState(""),
+  loadingStates: createSectionState(true),
+  typingStates: createSectionState(false),
   status: "",
   isComplete: false,
 };
 
-export const useAnalysisStore = create<AnalysisState>((set) => ({
+export const useAnalysisStore = create<AnalysisStore>((set) => ({
   ...initialState,
 
   setSource: (source) => set({ source }),
-
   setAnalysisId: (id) => set({ analysisId: id }),
 
-  /** AI 스트리밍용: 기존 텍스트 뒤에 이어붙이기 */
+  /** AI 스트리밍용 */
   appendSection: (key, text) =>
     set((state) => ({
       sections: {
@@ -95,7 +85,7 @@ export const useAnalysisStore = create<AnalysisState>((set) => ({
       },
     })),
 
-  /** redis / db용: 한 번에 세팅 */
+  /** redis / db용 */
   setSection: (key, text) =>
     set((state) => ({
       sections: {
@@ -125,7 +115,6 @@ export const useAnalysisStore = create<AnalysisState>((set) => ({
     })),
 
   setStatus: (status) => set({ status }),
-
   setComplete: () => set({ isComplete: true }),
 
   setAllSections: ({ sections, analysisId, source }) =>
@@ -134,18 +123,8 @@ export const useAnalysisStore = create<AnalysisState>((set) => ({
       analysisId,
       source,
       isComplete: true,
-      loadingStates: {
-        companySummary: false,
-        companyIssue: false,
-        positionMainBusiness: false,
-        positionIssue: false,
-      },
-      typingStates: {
-        companySummary: false,
-        companyIssue: false,
-        positionMainBusiness: false,
-        positionIssue: false,
-      },
+      loadingStates: createSectionState(false),
+      typingStates: createSectionState(false),
     }),
 
   reset: () => set(initialState),
