@@ -15,7 +15,7 @@ import { historyService } from "@/services/historyService";
 import { HistoryItemResponse } from "@/types/history";
 import AlertPopup from "./AlertPopup";
 import { colors } from "@/styles/colors";
-import { parseMarkdownToSections } from "@/features/result/services/parseMarkdown";
+import { parseMarkdownToSections } from "@/features/result/utils/parseMarkdown";
 
 interface HistoryDrawerProps {
   isOpen: boolean;
@@ -119,7 +119,7 @@ export default function HistoryDrawer({ isOpen, onClose }: HistoryDrawerProps) {
     if (isOpen && itemsRef.current.length > 0) {
       const newItems = itemsRef.current.slice(
         prevCountRef.current,
-        visibleCount,
+        visibleCount
       );
 
       if (newItems.length > 0) {
@@ -133,7 +133,7 @@ export default function HistoryDrawer({ isOpen, onClose }: HistoryDrawerProps) {
             stagger: 0.05,
             ease: "power2.out",
             overwrite: true,
-          },
+          }
         );
       }
       prevCountRef.current = visibleCount;
@@ -190,7 +190,7 @@ export default function HistoryDrawer({ isOpen, onClose }: HistoryDrawerProps) {
   const handleItemClick = async (item: HistoryItemResponse) => {
     try {
       const response = await historyService.getHistoryAnalysis(
-        item.companyPositionId,
+        item.companyPositionId
       );
 
       useAnalysisInputStore.getState().setInput({

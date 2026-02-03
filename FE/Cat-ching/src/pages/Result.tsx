@@ -12,7 +12,7 @@ import { useAnalysisInputStore } from "@/stores/analysisInputStore";
 import { useAnalysisSSE } from "@/features/result/hooks/useAnalysis";
 import { useAnalysisStore } from "@/stores/analysisStore";
 import { useAuthStore } from "@/stores/authStore";
-import { MarkdownRender } from "@/features/result/services/markdownRender";
+import { MarkdownRender } from "@/features/result/components/markdownRender";
 import PillButton from "@/components/PillButton";
 import AlertPopup from "@/components/AlertPopup";
 import { notionService } from "@/services/notionService";

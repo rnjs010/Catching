@@ -5,11 +5,8 @@ import {
   useAnalysisStore,
 } from "@/stores/analysisStore";
 import { startAnalysisSSE } from "../services/analysisService";
-import { parseMarkdownToSections } from "../services/parseMarkdown";
-import {
-  removeSectionTitle,
-  SECTION_KEYWORDS,
-} from "../services/removeSectionTitle";
+import { parseMarkdownToSections } from "../utils/parseMarkdown";
+import { removeSectionTitle } from "../utils/removeSectionTitle";
 import { API_BASE_URL } from "@/config/env";
 
 const SECTION_ORDER: (keyof AnalysisSections)[] = [
@@ -151,7 +148,7 @@ export const useAnalysisSSE = () => {
                 console.log("company-summary SSE data:", data);
                 sectionBuffers.current.companySummary = removeSectionTitle(
                   data,
-                  SECTION_KEYWORDS.companySummary
+                  "companySummary"
                 );
                 break;
 
@@ -159,24 +156,21 @@ export const useAnalysisSSE = () => {
                 console.log("company-issue SSE data:", data);
                 sectionBuffers.current.companyIssue = removeSectionTitle(
                   data,
-                  SECTION_KEYWORDS.companyIssue
+                  "companyIssue"
                 );
                 break;
 
               case "position-main-business":
                 console.log("position-main-business SSE data:", data);
                 sectionBuffers.current.positionMainBusiness =
-                  removeSectionTitle(
-                    data,
-                    SECTION_KEYWORDS.positionMainBusiness
-                  );
+                  removeSectionTitle(data, "positionMainBusiness");
                 break;
 
               case "position-issue":
                 console.log("position-issue SSE data:", data);
                 sectionBuffers.current.positionIssue = removeSectionTitle(
                   data,
-                  SECTION_KEYWORDS.positionIssue
+                  "positionIssue"
                 );
                 break;
 

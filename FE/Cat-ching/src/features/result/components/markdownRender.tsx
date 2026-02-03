@@ -1,6 +1,10 @@
-import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+
+const MARKERS = {
+  ISSUE_TITLE: "@@ISSUE_TITLE@@",
+  DATE: "📅",
+} as const;
 
 function preprocessMarkdown(text: string) {
   return (
@@ -9,17 +13,17 @@ function preprocessMarkdown(text: string) {
       .replace(/~~/g, "\\~\\~")
 
       // 타이틀 강제 마커 삽입
-      .replace(/(^|\n)\*\*([^*\n]+?)\*\*/g, "\n**@@ISSUE_TITLE@@$2**")
+      .replace(/(^|\n)\*\*([^*\n]+?)\*\*/g, `\n**${MARKERS.ISSUE_TITLE}$2**`)
 
       // 날짜 및 링크 전처리
       .replace(
         /날짜\s*:\s*["']?(.+?)["']?(?=\n|$)/g,
-        (_, date) => `\n📅 **${date.trim()}**\n`
+        (_, date) => `\n${MARKERS.DATE} **${date.trim()}**\n`
       )
 
       .replace(
-        /\[([^\]]+)\]\s*:\s*["']?(https?:\/\/[^\s"')]+)["']?/g,
-        "\n🔗 [$1]($2)"
+        /\[([^\]]+)\]([^:\n]*):\s*["']?(https?:\/\/[^\s"'`)]+)["']?/g,
+        "\n🔗 [$1$2]($3)"
       )
 
       // 리스트 타이틀 줄바꿈 보정
@@ -47,14 +51,11 @@ export function MarkdownRender({ text }: { text: string }) {
           <li className="ml-6 list-disc mt-1" {...props} />
         ),
         strong: ({ children }) => {
-          const text = React.Children.toArray(children)
-            .filter((c) => typeof c === "string")
-            .join("");
-
-          if (text.startsWith("@@ISSUE_TITLE@@")) {
+          const text = children?.toString?.() ?? "";
+          if (text.startsWith(MARKERS.ISSUE_TITLE)) {
             return (
               <strong className="block mt-4 mb-0 text-sm font-semibold">
-                {text.replace("@@ISSUE_TITLE@@", "")}
+                {text.replace(MARKERS.ISSUE_TITLE, "")}
               </strong>
             );
           }
@@ -70,14 +71,12 @@ export function MarkdownRender({ text }: { text: string }) {
           />
         ),
         p: ({ children }) => {
-          const text = React.Children.toArray(children)
-            .map((c) => (typeof c === "string" ? c : ""))
-            .join("")
-            .trim();
-
-          if (text.startsWith("📅")) {
+          const text = children?.toString?.() ?? "";
+          if (text.startsWith(MARKERS.DATE)) {
             return (
-              <p className="text-xs text-gray-600 leading-tight">{children}</p>
+              <p className="text-xs text-gray-600 leading-tight my-[2px]">
+                {children}
+              </p>
             );
           }
 
