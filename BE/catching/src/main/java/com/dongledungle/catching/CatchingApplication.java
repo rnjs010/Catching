@@ -6,8 +6,8 @@ import java.util.TimeZone;
 
 @SpringBootApplication
 public class CatchingApplication {
-	public static void main(String[] args) {
-		TimeZone.setDefault(TimeZone.getTimeZone("Asia/Seoul"));
-		SpringApplication.run(CatchingApplication.class, args);
-	}
+    public static void main(String[] args) {
+        TimeZone.setDefault(TimeZone.getTimeZone("Asia/Seoul"));
+        SpringApplication.run(CatchingApplication.class, args);
+    }
 }

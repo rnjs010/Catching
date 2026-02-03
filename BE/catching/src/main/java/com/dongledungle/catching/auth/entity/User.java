@@ -1,5 +1,6 @@
 package com.dongledungle.catching.auth.entity;
 
+import com.dongledungle.catching.notion.entity.Notion;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -46,8 +47,17 @@ public class User {
     @Column(nullable = false)
     private String role = "ROLE_USER";
 
-    // ---------- 비즈니스 메서드들 ---------- //
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Notion notion;
 
+    // ---------- 비즈니스 메서드들 ---------- //
+    public boolean isNotionConnected() {
+        return this.notion != null && this.notion.getNotionAccessToken() != null;
+    }
+
+    public boolean hasDefaultPage() {
+        return this.notion != null && this.notion.getNotionDefaultPageId() != null && !this.notion.getNotionDefaultPageId().isEmpty();
+    }
 
     public void updateUserName(String userName) {
         this.userName = userName;
