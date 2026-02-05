@@ -11,17 +11,22 @@ export function removeSectionTitle(
   if (!config) return text.trim();
 
   const lines = text.split("\n");
-  const firstLine = lines[0].trim();
 
-  // 마크다운 제목인지 확인
-  if (!/^#+\s+/.test(firstLine)) {
+  const titleIndex = lines.findIndex((line) => {
+    const trimmed = line.trim();
+
+    if (!/^#+\s+/.test(trimmed)) return false;
+
+    const titleText = trimmed.replace(/^#+\s*/, "");
+    return config.titlePatterns.some((re) => re.test(titleText));
+  });
+
+  if (titleIndex === -1) {
     return text.trim();
   }
 
-  const titleText = firstLine.replace(/^#+\s*/, "");
-
-  const isMatched = config.titlePatterns.some((re) => re.test(titleText));
-  if (!isMatched) return text.trim();
-
-  return lines.slice(1).join("\n").trim();
+  return lines
+    .slice(titleIndex + 1)
+    .join("\n")
+    .trim();
 }
