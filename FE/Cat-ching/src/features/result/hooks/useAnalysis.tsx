@@ -1,25 +1,27 @@
 import { useCallback, useRef } from "react";
 import {
+  ANALYSIS_SECTION_KEYS,
   AnalysisSections,
   AnalysisSource,
   useAnalysisStore,
 } from "@/stores/analysisStore";
-import { startAnalysisSSE } from "../services/analysisService";
+import {
+  startAnalysisSSE,
+  AnalysisSSEEvent,
+} from "../services/analysisService";
 import { parseMarkdownToSections } from "../utils/parseMarkdown";
 import { removeSectionTitle } from "../utils/removeSectionTitle";
 import { API_BASE_URL } from "@/config/env";
 
-const SECTION_ORDER: (keyof AnalysisSections)[] = [
-  "companySummary",
-  "companyIssue",
-  "positionMainBusiness",
-  "positionIssue",
-];
+const SECTION_EVENT_MAP = {
+  "company-summary": "companySummary",
+  "company-issue": "companyIssue",
+  "position-main-business": "positionMainBusiness",
+  "position-issue": "positionIssue",
+} as const;
 
 export const useAnalysisSSE = () => {
   const abortRef = useRef<AbortController | null>(null);
-
-  // SSE로 받은 전체 텍스트 임시 저장
   const sectionBuffers = useRef<Partial<AnalysisSections>>({});
 
   const {
@@ -34,9 +36,7 @@ export const useAnalysisSSE = () => {
     reset,
   } = useAnalysisStore();
 
-  const sleep = (ms: number) =>
-    new Promise((resolve) => setTimeout(resolve, ms));
-
+  /** 타이핑 유틸 */
   const fakeTyping = async (
     key: keyof AnalysisSections,
     text: string,
@@ -46,27 +46,66 @@ export const useAnalysisSSE = () => {
     setLoading(key, false);
     setTyping(key, true);
 
-    // 단어 단위 타이핑
-    const words = text.split(/(\s+)/);
-
-    for (const word of words) {
+    for (const chunk of text.split(/(\s+)/)) {
       if (signal.aborted) return;
-      appendSection(key, word);
-      await sleep(speed);
+      appendSection(key, chunk);
+      await new Promise((r) => setTimeout(r, speed));
     }
 
     setTyping(key, false);
   };
 
   const startTypingSequentially = async (signal: AbortSignal) => {
-    for (const key of SECTION_ORDER) {
+    for (const key of ANALYSIS_SECTION_KEYS) {
       const text = sectionBuffers.current[key];
-      if (!text) continue;
-      await fakeTyping(key, text, signal);
+      if (text) {
+        await fakeTyping(key, text, signal);
+      }
     }
-
     setComplete();
   };
+
+  /** SSE 이벤트 처리 */
+  const handleEvent = useCallback(
+    (event: AnalysisSSEEvent, signal: AbortSignal) => {
+      switch (event.type) {
+        case "status":
+          setStatus(event.payload);
+          break;
+
+        case "source":
+          setSource(event.payload as AnalysisSource);
+          break;
+
+        case "data":
+          if (source === "ai") return;
+          console.log("data:", event.payload);
+          const parsed = parseMarkdownToSections(event.payload);
+          sectionBuffers.current = parsed;
+          break;
+
+        case "analysisId":
+          setAnalysisId(event.payload);
+          break;
+
+        case "complete":
+          startTypingSequentially(signal);
+          break;
+
+        default:
+          if (event.type in SECTION_EVENT_MAP) {
+            const key =
+              SECTION_EVENT_MAP[event.type as keyof typeof SECTION_EVENT_MAP];
+            console.log(event.type, "data:", event.payload);
+            sectionBuffers.current[key] = removeSectionTitle(
+              event.payload,
+              key
+            );
+          }
+      }
+    },
+    [source]
+  );
 
   const start = useCallback(
     async (params: {
@@ -87,119 +126,17 @@ export const useAnalysisSSE = () => {
         await startAnalysisSSE({
           url: `${API_BASE_URL}/analysis/text`,
           token: params.token,
-          body: {
-            company: params.company,
-            position: params.position,
-            today: params.today,
-            analysisDepth: params.analysisDepth,
-          },
+          body: params,
           signal: controller.signal,
-
-          onEvent: (event) => {
-            const type = event.event;
-            const data = event.data as any;
-
-            switch (type) {
-              case "status":
-                console.log("status SSE data:", data);
-                setStatus(data);
-                break;
-
-              case "source":
-                console.log("source SSE data:", data);
-                setSource(data as AnalysisSource);
-                break;
-
-              /** redis / database */
-              case "data":
-                if (!data) return;
-                if (source == "ai") {
-                  console.log("Ignoring data SSE in AI source mode");
-                  return;
-                }
-
-                let raw = "";
-
-                if (typeof data === "string") {
-                  try {
-                    const parsedJson = JSON.parse(data);
-                    raw = parsedJson.content ?? "";
-                  } catch {
-                    raw = data;
-                  }
-                }
-
-                if (!raw) return;
-
-                console.log("data SSE data:", raw);
-                const parsed = parseMarkdownToSections(raw);
-
-                // sectionBuffers.current = parsed;
-                sectionBuffers.current = {
-                  companySummary: parsed.companySummary,
-                  companyIssue: parsed.companyIssue,
-                  positionMainBusiness: parsed.positionMainBusiness,
-                  positionIssue: parsed.positionIssue,
-                };
-                break;
-
-              /** AI 스트리밍 */
-              case "company-summary":
-                console.log("company-summary SSE data:", data);
-                sectionBuffers.current.companySummary = removeSectionTitle(
-                  data,
-                  "companySummary"
-                );
-                break;
-
-              case "company-issue":
-                console.log("company-issue SSE data:", data);
-                sectionBuffers.current.companyIssue = removeSectionTitle(
-                  data,
-                  "companyIssue"
-                );
-                break;
-
-              case "position-main-business":
-                console.log("position-main-business SSE data:", data);
-                sectionBuffers.current.positionMainBusiness =
-                  removeSectionTitle(data, "positionMainBusiness");
-                break;
-
-              case "position-issue":
-                console.log("position-issue SSE data:", data);
-                sectionBuffers.current.positionIssue = removeSectionTitle(
-                  data,
-                  "positionIssue"
-                );
-                break;
-
-              case "analysisId":
-                setAnalysisId(Number(data));
-                break;
-
-              case "complete":
-                console.log("Analysis complete.");
-                // 순차 타이핑 시작
-                startTypingSequentially(controller.signal);
-                break;
-
-              default:
-                console.warn("Unknown SSE event:", type);
-            }
-          },
+          onEvent: (event) => handleEvent(event, controller.signal),
         });
-
-        console.log("SSE finished normally");
-      } catch (error) {
-        if (controller.signal.aborted) {
-          console.log("SSE aborted by user");
-        } else {
-          console.warn("SSE ended with error (treated as complete)", error);
+      } catch (e) {
+        if (!controller.signal.aborted) {
+          console.warn("SSE error", e);
         }
       }
     },
-    []
+    [handleEvent]
   );
 
   const stop = useCallback(() => {
