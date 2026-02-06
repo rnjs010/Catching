@@ -6,10 +6,11 @@ import CompanySection from "@/features/search/components/CompanySection";
 import JobSection from "@/features/search/components/JobSection";
 import { useCompanyDetector } from "@/features/search/hooks/useCompanyDetector";
 import { useShowCompany } from "@/features/search/hooks/useShowCompany";
-import { useJobInputStore } from "@/stores/jobStore";
 import { useAppStore } from "@/stores/appStore";
-import { useEffect, useState } from "react";
+import { useJobInputStore } from "@/stores/jobStore";
 import { useAnalysisInputStore } from "@/stores/analysisInputStore";
+import { useAnalysisStore } from "@/stores/analysisStore";
+import { useEffect, useState } from "react";
 
 const PageLayout = styled.div`
   ${tw`relative flex flex-col flex-1 w-full items-center`}
@@ -71,6 +72,8 @@ export default function Search() {
   const { job, reset } = useJobInputStore();
   useEffect(() => {
     reset();
+    useAnalysisInputStore.getState().reset();
+    useAnalysisStore.getState().reset();
   }, []);
 
   useEffect(() => {
