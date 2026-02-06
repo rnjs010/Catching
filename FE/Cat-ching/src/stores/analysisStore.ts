@@ -53,7 +53,7 @@ interface AnalysisActions {
 
 type AnalysisStore = AnalysisState & AnalysisActions;
 
-const createSectionState = <T>(initialValue: T): SectionStateMap<T> => {
+export const createSectionState = <T>(initialValue: T): SectionStateMap<T> => {
   return ANALYSIS_SECTION_KEYS.reduce((acc, key) => {
     acc[key] = initialValue;
     return acc;
