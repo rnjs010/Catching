@@ -15,9 +15,6 @@ public class PopularAnalysisDto {
     private String company;
     private String position;
 
-    @JsonRawValue
-    private String content;
-
     private Long viewCount;  // 실시간 조회수
     private String yearMonthWeek;
 }
