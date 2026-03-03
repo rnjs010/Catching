@@ -40,7 +40,7 @@ public class GeminiService {
     private Resource prompt4;
 
     private final Gson gson = new Gson();
-    private static final String MODEL = "gemini-flash-latest";
+    private static final String MODEL = "gemini-2.5-flash-preview-09-2025";
 
     // ============ Public API ============
 

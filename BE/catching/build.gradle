@@ -28,7 +28,7 @@ repositories {
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springframework.boot:spring-boot-starter-webflux'
-	implementation 'com.google.genai:google-genai:1.28.0'
+	implementation 'com.google.genai:google-genai:1.35.0'
 	implementation 'com.google.code.gson:gson'
 	implementation 'com.google.guava:guava:33.0.0-jre'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
@@ -57,6 +57,11 @@ dependencies {
 	testImplementation 'org.springframework.security:spring-security-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+	// PDF Export
+	implementation 'org.xhtmlrenderer:flying-saucer-pdf-openpdf:9.1.22'
+	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+	implementation 'org.commonmark:commonmark:0.21.0'
 }
 
 tasks.named('test') {

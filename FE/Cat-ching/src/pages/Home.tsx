@@ -8,6 +8,7 @@ import blueCat from "@/assets/blueCat.png";
 import { useState } from "react";
 import { PieItem } from "@/types/chart.type";
 import BlurText from "@/components/BlurText";
+import { useAuthStore } from "@/stores/authStore";
 
 export const ContentArea = styled.div`
   ${tw`flex flex-col items-center justify-center flex-1 w-full`}
@@ -26,14 +27,14 @@ export const InnerIcon = styled.div`
 `;
 
 export const LoginButton = styled.button`
-  ${tw`mb-4 mt-16 w-11/12 rounded-xl shadow-lg border flex items-center justify-center gap-2`}
+  ${tw`mb-4 mt-16 w-11/12 rounded-xl shadow-lg border flex items-center justify-center gap-2 transition-opacity`}
   background-color: ${colors.blue10};
-`;
 
-// Text Animation
-const handleAnimationComplete = () => {
-  console.log("Animation completed!");
-};
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+`;
 
 // 차트 관련
 const DefaultChartText = () => (
@@ -61,7 +62,6 @@ const HoverChartText = ({ item }: { item: PieItem }) => (
       delay={80}
       animateBy="letters"
       direction="top"
-      onAnimationComplete={handleAnimationComplete}
       className="text-2xl font-semibold text-[#0058CC]"
     />
     <Text variant="sm" weight="normal" color="gray60">
@@ -107,6 +107,8 @@ const MyPie = ({ pieData, setHoverId, hoverId }: MyPieProps) => {
 };
 
 export default function Home() {
+  const { login, isLoading } = useAuthStore();
+
   // 임시 데이터
   const pieData = [
     {
@@ -137,6 +139,10 @@ export default function Home() {
   const [hoverId, setHoverId] = useState<number | null>(null);
   const hoveredItem = pieData.find((item) => item.id === hoverId);
 
+  const handleLogin = async () => {
+    await login();
+  };
+
   return (
     <>
       <ContentArea>
@@ -158,10 +164,10 @@ export default function Home() {
         </ChartWrapper>
 
         {/* GOOGLE LOGIN */}
-        <LoginButton>
+        <LoginButton onClick={handleLogin} disabled={isLoading}>
           <FcGoogle size={24} />
           <Text variant="xl" color="gray90">
-            Google로 시작하기
+            {isLoading ? "로그인 중..." : "Google로 시작하기"}
           </Text>
         </LoginButton>
       </ContentArea>

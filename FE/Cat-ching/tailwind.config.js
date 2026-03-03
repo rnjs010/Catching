@@ -12,6 +12,9 @@ export default {
       animation: {
         "fade-in-slow": "fadeInSlow 0.8s ease-out forwards",
       },
+      boxShadow: {
+        custom: "2px 3px 5.2px 0px rgba(0,0,0,0.25)",
+      },
     },
   },
   plugins: [],
