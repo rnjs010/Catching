@@ -48,6 +48,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/login").permitAll()  // 로그인
                         .requestMatchers("/api/auth/refresh").permitAll() // 토큰 갱신
                         .requestMatchers("/actuator/health").permitAll()  // 헬스췤
+                        .requestMatchers("/api/popular/current").permitAll() // 인기 직무
 
                         // 나머지는 인증 필요
                         .anyRequest().authenticated()
