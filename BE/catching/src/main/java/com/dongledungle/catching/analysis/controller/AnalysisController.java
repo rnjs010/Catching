@@ -7,6 +7,7 @@ import com.dongledungle.catching.analysis.entity.Analysis;
 import com.dongledungle.catching.analysis.service.AnalysisService;
 import com.dongledungle.catching.analysis.service.AnalysisService.CacheResult;
 import com.dongledungle.catching.analysis.service.GeminiService;
+import com.dongledungle.catching.analysis.service.RateLimitService;
 import com.dongledungle.catching.analysis.service.UrlResolverService;
 import com.dongledungle.catching.auth.entity.User;
 import com.dongledungle.catching.common.response.ApiResponse;
@@ -42,6 +43,7 @@ public class AnalysisController {
     private final GeminiService geminiService;
     private final AnalysisService analysisService;
     private final HistoryService historyService;
+    private final RateLimitService rateLimitService;
     private final UrlResolverService urlResolverService;
     private final Gson gson = new Gson();
 
@@ -59,8 +61,20 @@ public class AnalysisController {
 
     @PostMapping(value = "/text", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter analyzeText(Authentication authentication, @RequestBody AnalysisRequestDto request) {
-        SseEmitter emitter = new SseEmitter(600000L);
         Long userId = Long.parseLong((String) authentication.getPrincipal());
+        SseEmitter emitter = new SseEmitter(600000L);
+
+        // Rate limit 체크
+        if (!rateLimitService.isUserAllowed(userId)) {
+            Long remainingTime = rateLimitService.getRemainingTime(userId);
+            sendSseEvent(emitter, "error",
+                    gson.toJson(new ErrorResponse("RATE_LIMIT",
+                            remainingTime + "초 후에 다시 시도해주세요.")));
+            emitter.complete();
+            return emitter;
+        }
+
+
         request.setUserId(userId);
         CompletableFuture.runAsync(() -> processAnalysisWithSSE(request, emitter, false));
         return emitter;
@@ -112,6 +126,15 @@ public class AnalysisController {
 
     private void processAnalysisWithSSE(AnalysisRequestDto request, SseEmitter emitter, boolean isJsonMode) {
         try {
+            // 동일 분석이 이미 처리 중인지 체크
+            if (rateLimitService.isAnalysisProcessing(request.getUserId(), request.getCompany(), request.getPosition())) {
+                sendSseEvent(emitter, "error",
+                        gson.toJson(new ErrorResponse("PROCESSING",
+                                "해당 분석이 이미 진행 중입니다. 잠시 후 다시 시도해주세요.")));
+                emitter.complete();
+                return;
+            }
+
             // 1. Redis 캐시 확인
             sendSseEvent(emitter, "status", "캐시 확인 중...");
             CacheResult cachedResult = checkCache(request);

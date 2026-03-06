@@ -136,7 +136,14 @@ public class GeminiService {
      */
     private Tool createGoogleSearchTool() {
         return Tool.builder()
-                .googleSearch(GoogleSearch.builder().build())
+                //.googleSearch(GoogleSearch.builder().build())
+                .googleSearch(GoogleSearch.builder()
+                        .excludeDomains(ImmutableList.of(
+                                "namu.wiki",
+                                "blog.naver.com",
+                                "wikipedia.org"
+                        ))
+                        .build())
                 .build();
     }
 

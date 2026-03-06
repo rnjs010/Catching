@@ -45,7 +45,6 @@ public class PopularAnalysisService {
                             .companyPositionId(companyPositionId)
                             .company(analysis.getCompany())
                             .position(analysis.getPosition())
-                            .content(analysis.getContent())
                             .viewCount(viewCount)
                             .yearMonthWeek(yearMonthWeek)
                             .build();
@@ -74,7 +73,6 @@ public class PopularAnalysisService {
                             .companyPositionId(id)
                             .company(analysis.getCompany())
                             .position(analysis.getPosition())
-                            .content(analysis.getContent())
                             .viewCount(viewCount)
                             .yearMonthWeek(currentWeek)
                             .build();

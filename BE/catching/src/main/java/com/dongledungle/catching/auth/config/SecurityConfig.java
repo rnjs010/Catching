@@ -52,6 +52,7 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/health").permitAll()  // 헬스췤
                         .requestMatchers("/api/notion/callback").permitAll()
                         .requestMatchers("/notion/**").permitAll()
+                        .requestMatchers("/api/popular/current").permitAll() // 인기 직무
 
                         // 나머지는 인증 필요
                         .anyRequest().authenticated()
