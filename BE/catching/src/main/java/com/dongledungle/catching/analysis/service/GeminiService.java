@@ -40,7 +40,7 @@ public class GeminiService {
     private Resource prompt4;
 
     private final Gson gson = new Gson();
-    private static final String MODEL = "gemini-2.5-flash-preview-09-2025";
+    private static final String MODEL = "gemini-2.5-flash";
 
     // ============ Public API ============
 
@@ -136,14 +136,7 @@ public class GeminiService {
      */
     private Tool createGoogleSearchTool() {
         return Tool.builder()
-                //.googleSearch(GoogleSearch.builder().build())
-                .googleSearch(GoogleSearch.builder()
-                        .excludeDomains(ImmutableList.of(
-                                "namu.wiki",
-                                "blog.naver.com",
-                                "wikipedia.org"
-                        ))
-                        .build())
+                .googleSearch(GoogleSearch.builder().build())
                 .build();
     }
 
