@@ -42,7 +42,7 @@ export const useAnalysisSSE = () => {
     key: keyof AnalysisSections,
     text: string,
     signal: AbortSignal,
-    speed = 40
+    speed = 40,
   ) => {
     setLoading(key, false);
     setTyping(key, true);
@@ -100,12 +100,12 @@ export const useAnalysisSSE = () => {
             console.log(event.type, "data:", event.payload);
             sectionBuffers.current[key] = removeSectionTitle(
               event.payload,
-              key
+              key,
             );
           }
       }
     },
-    [source]
+    [source],
   );
 
   const start = useCallback(
@@ -142,7 +142,7 @@ export const useAnalysisSSE = () => {
               // 401 발생 시 authStore의 checkAuth를 호출하여 api 인터셉터의 리프레시 로직을 트리거
               await useAuthStore.getState().checkAuth();
               const newToken = await useAuthStore.getState().getToken();
-              
+
               if (newToken && !controller.signal.aborted) {
                 // 성공적으로 발급받은 새 토큰으로 SSE 재시도
                 await executeSSE(newToken);
@@ -156,7 +156,7 @@ export const useAnalysisSSE = () => {
         }
       }
     },
-    [handleEvent, reset]
+    [handleEvent, reset],
   );
 
   const stop = useCallback(() => {

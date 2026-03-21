@@ -2,7 +2,7 @@ import { extractCompany } from "@/features/search/services/companyService";
 import { showCropOverlay } from "@/features/search/services/showCropOverlay";
 
 export default defineContentScript({
-  matches: ["<all_urls>"],
+  matches: ["https://*/*"],
   allFrames: true,
   main() {
     console.log("extension loaded");

@@ -24,6 +24,8 @@ export function extractCompany(site: string, url: string): string | null {
     const urlObj = new URL(url);
     if (url.includes("/Recruit/GI_Read")) {
       return querySelect("h2.Typography_variant_size20__344nw24");
+    } else if (url.includes("/starter/companyreport?")) {
+      return urlObj.searchParams.get("schTxt");
     } else if (
       url.includes("/Recruit/Co_Read") ||
       url.includes("/Recruit/Salary") ||
@@ -33,8 +35,6 @@ export function extractCompany(site: string, url: string): string | null {
       return querySelect("div.company-header-branding-body div.name");
     } else if (url.includes("/Review/ServiceView")) {
       return querySelect("span.co-name");
-    } else if (url.includes("/starter/companyreport?")) {
-      return urlObj.searchParams.get("schTxt");
     }
   }
 
