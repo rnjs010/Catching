@@ -31,18 +31,16 @@ export function extractCompany(site: string, url: string): string | null {
       url.includes("/company")
     ) {
       return querySelect("div.company-header-branding-body div.name");
-    } else if (urlObj.pathname !== "/") {
-      const meta = document.querySelector<HTMLMetaElement>(
-        'meta[name="writer"]'
-      );
-      return meta?.content || null;
+    } else if (url.includes("/Review/ServiceView")) {
+      return querySelect("span.co-name");
+    } else if (url.includes("/starter/companyreport?")) {
+      return urlObj.searchParams.get("schTxt");
     }
   }
 
   if (site === "saramin") {
     if (url.includes("/zf_user/company-review")) {
-      const el = document.querySelector<HTMLElement>("h1.title a");
-      return el?.textContent?.trim() || null;
+      return querySelect("h1.title a");
     } else if (url.includes("/zf_user/company-info")) {
       const el = document.querySelector<HTMLHeadingElement>("h1.tit_company");
       return el?.getAttribute("title")?.trim() || null;
@@ -59,11 +57,12 @@ export function extractCompany(site: string, url: string): string | null {
 
   if (site === "jobplanet") {
     if (url.includes("/job/search")) {
-      const el = document.querySelector<HTMLElement>(".company_name a");
-      return el?.textContent?.trim() || null;
+      return querySelect(".company_name a");
     } else if (url.includes("/companies/")) {
-      const el = document.querySelector<HTMLHeadingElement>("h1.text-h5");
-      return el?.textContent?.trim() || null;
+      if (url.includes("/interviews/") || url.includes("/benefits/")) {
+        return querySelect("h1.companies-company__name");
+      }
+      return querySelect("h1.text-h5");
     }
   }
 
@@ -74,32 +73,31 @@ export function extractCompany(site: string, url: string): string | null {
         document.querySelector(".recruit-slide-backdrop") !== null;
 
       if (isModal) {
-        const el = document.querySelector<HTMLElement>(".ec-name-value");
-        return el?.textContent?.trim() || null;
+        return querySelect(".ec-name-value");
       } else {
-        const el = document.querySelector<HTMLElement>("span.ml-3");
-        return el?.textContent?.trim() || null;
+        return querySelect("h2.ml-3");
       }
     }
     const urlObj = new URL(url);
 
-    // 메인 페이지 모달, /intern/숫자 페이지
+    // 메인 페이지 모달, /intern/숫자 페이지, /training 페이지
     if (
       (urlObj.hostname === "jasoseol.com" &&
         (urlObj.pathname === "/" || urlObj.pathname === "")) ||
-      /\/intern\/\d+/.test(url)
+      /\/intern\/\d+/.test(url) ||
+      urlObj.pathname === "/training"
     ) {
       const isModal = document.body.classList.contains("no-scroll");
 
       if (isModal) {
         const modals = document.querySelectorAll<HTMLElement>(
-          '.transition-left[class*="recruit-slide"]'
+          '.transition-left[class*="recruit-slide"]',
         );
 
         for (const modal of modals) {
           const leftValue = modal.style.left;
           if (leftValue && leftValue.includes("45px")) {
-            const el = modal.querySelector<HTMLElement>("span.ml-3");
+            const el = modal.querySelector<HTMLElement>("h2.ml-3");
             return el?.textContent?.trim() || null;
           }
         }
@@ -108,8 +106,7 @@ export function extractCompany(site: string, url: string): string | null {
 
     // /companies 페이지
     if (url.includes("/companies")) {
-      const el = document.querySelector<HTMLHeadingElement>("h1.text-gray-900");
-      return el?.textContent?.trim() || null;
+      return querySelect("h1.text-gray-900");
     }
 
     return null;
@@ -117,25 +114,17 @@ export function extractCompany(site: string, url: string): string | null {
 
   if (site === "linkareer") {
     if (url.includes("/company-info")) {
-      const el = document.querySelector<HTMLHeadingElement>(
-        "div.company-details h1"
-      );
-      return el?.textContent?.trim() || null;
+      return querySelect("div.company-details h1");
     } else if (url.includes("/activity")) {
-      const el = document.querySelector<HTMLHeadingElement>(
-        "h2.organization-name"
-      );
-      return el?.textContent?.trim() || null;
+      return querySelect("h2.organization-name");
     }
   }
 
   if (site === "incruit") {
     if (url.includes("/jobdb_info") || url.includes("/entry/")) {
-      const el = document.querySelector<HTMLElement>("div.top-cnt em a");
-      return el?.textContent?.trim() || null;
+      return querySelect("div.top-cnt em a");
     } else if (url.includes("/company")) {
-      const el = document.querySelector<HTMLElement>("div.name");
-      return el?.textContent?.trim() || null;
+      return querySelect("div.name");
     }
   }
 
@@ -144,37 +133,25 @@ export function extractCompany(site: string, url: string): string | null {
       const match = document.title.match(/^\[([^\]]+)\]/);
       return match ? match[1] : null;
     } else if (url.includes("/Comp/CompSummary")) {
-      const el = document.querySelector<HTMLHeadingElement>("div.name h1");
-      return el?.textContent?.trim() || null;
+      return querySelect("div.name h1");
     }
   }
 
   if (site === "jobda") {
     if (url.includes("/company")) {
-      const el = document.querySelector<HTMLHeadingElement>(
-        "span.companyBannerArea_companyName__oyXyJ"
-      );
-      return el?.textContent?.trim() || null;
+      return querySelect("span.companyBannerArea_companyName__oyXyJ");
     } else if (url.includes("/position")) {
-      const el = document.querySelector<HTMLHeadingElement>(
-        "a.title_companyName__dzX3V"
-      );
-      return el?.textContent?.trim() || null;
+      return querySelect("a.title_companyName__dzX3V");
     } else {
-      const el = document.querySelector<HTMLHeadingElement>(
-        "a.jobPostModal_jobPostInfoText__zA5OZ"
-      );
-      return el?.textContent?.trim() || null;
+      return querySelect("a.jobPostModal_jobPostInfoText__zA5OZ");
     }
   }
 
   if (site === "rallit") {
     if (url.includes("/companies/")) {
-      const el = document.querySelector<HTMLHeadingElement>("h1.css-55ww01");
-      return el?.textContent?.trim() || null;
+      return querySelect("h1.css-55ww01");
     } else if (url.includes("/positions/")) {
-      const el = document.querySelector<HTMLHeadingElement>("h2.css-1iscm3n");
-      return el?.textContent?.trim() || null;
+      return querySelect("h2.css-1iscm3n");
     }
   }
 
@@ -196,6 +173,8 @@ export function extractCompany(site: string, url: string): string | null {
           .replace("정보", "")
           .replace("careers", "")
           .replace("Careers", "")
+          .replace("홈페이지", "")
+          .replace("|", "")
           .trim() || null
       );
     } else if (
@@ -209,6 +188,8 @@ export function extractCompany(site: string, url: string): string | null {
           .replace("정보", "")
           .replace("careers", "")
           .replace("Careers", "")
+          .replace("홈페이지", "")
+          .replace("|", "")
           .trim() || null
       );
     }
@@ -268,7 +249,7 @@ export function onTabChange(callback: () => void): () => void {
   let pendingUrlChanged = false;
   const handleUpdated = async (
     tabId: number,
-    changeInfo: { status?: string; url?: string }
+    changeInfo: { status?: string; url?: string },
   ) => {
     const [activeTab] = await browser.tabs.query({
       active: true,
