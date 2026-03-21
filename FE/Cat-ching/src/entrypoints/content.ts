@@ -172,6 +172,9 @@ export default defineContentScript({
 
     browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message.type === "START_CROP") {
+        // 최상위 창(Top window)이 아닌 하위 iframe이면 캔버스 오버레이를 띄우지 않고 무시
+        if (window !== window.top) return;
+
         const { promise, cancel } = showCropOverlay(message.screenshot);
         cancelCropOverlay = cancel;
         promise
