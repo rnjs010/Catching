@@ -12,6 +12,7 @@ import {
 import { parseMarkdownToSections } from "../utils/parseMarkdown";
 import { removeSectionTitle } from "../utils/removeSectionTitle";
 import { API_BASE_URL } from "@/config/env";
+import { useAuthStore } from "@/stores/authStore";
 
 const SECTION_EVENT_MAP = {
   "company-summary": "companySummary",
@@ -122,21 +123,40 @@ export const useAnalysisSSE = () => {
       const controller = new AbortController();
       abortRef.current = controller;
 
-      try {
+      const executeSSE = async (currentToken: string) => {
         await startAnalysisSSE({
           url: `${API_BASE_URL}/analysis/text`,
-          token: params.token,
+          token: currentToken,
           body: params,
           signal: controller.signal,
           onEvent: (event) => handleEvent(event, controller.signal),
         });
-      } catch (e) {
+      };
+
+      try {
+        await executeSSE(params.token);
+      } catch (e: any) {
         if (!controller.signal.aborted) {
+          if (e.message === "HTTP 401") {
+            try {
+              // 401 발생 시 authStore의 checkAuth를 호출하여 api 인터셉터의 리프레시 로직을 트리거
+              await useAuthStore.getState().checkAuth();
+              const newToken = await useAuthStore.getState().getToken();
+              
+              if (newToken && !controller.signal.aborted) {
+                // 성공적으로 발급받은 새 토큰으로 SSE 재시도
+                await executeSSE(newToken);
+                return;
+              }
+            } catch (refreshError) {
+              console.error("SSE token refresh retry failed:", refreshError);
+            }
+          }
           console.warn("SSE error", e);
         }
       }
     },
-    [handleEvent]
+    [handleEvent, reset]
   );
 
   const stop = useCallback(() => {
