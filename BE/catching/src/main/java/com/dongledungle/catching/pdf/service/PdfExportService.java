@@ -70,17 +70,22 @@ public class PdfExportService {
         // 날짜 라인 처리 (div로 감싸서 스타일링)
         // 예: 날짜: 2025-10-30 -> <div class="date-line">날짜: 2025-10-30</div>
         // ============================================
-        processed = processed.replaceAll(
-                "날짜:\\s*([^\\s\\n][^\\n]*)",
-                "<div class=\"date-line\">날짜: $1</div>"
-        );
+        Matcher m1 = Pattern.compile("날짜:\\s*([^\\s\\n][^\\n]*)").matcher(processed);
+        StringBuffer sb0 = new StringBuffer();
+        while (m1.find()) {
+            // HTML 감싸기 전, 마크다운 별표(*, **) 문자 제거
+            String dateContent = m1.group(1).replace("*", "").trim();
+            m1.appendReplacement(sb0, "<div class=\"date-line\">날짜: " + Matcher.quoteReplacement(dateContent) + "</div>");
+        }
+        m1.appendTail(sb0);
+        processed = sb0.toString();
 
         // ============================================
         // [[내부대괄호포함제목]]: URL 패턴
         // 예: [[현대자동차] [계약직] CS강사]: https://...
         // ============================================
         Pattern doubleBracketRefPattern = Pattern.compile(
-                "\\[\\[((?:[^\\[\\]]|\\[[^\\]]*\\])*)\\]\\]:\\s*(https?://\\S+)"
+                "\\[\\[((?:[^\\[\\]]|\\[[^\\]]*\\])*)\\]\\]:\\s*\"?(https?://[^\\s\"]+)\"?"
         );
         Matcher m2 = doubleBracketRefPattern.matcher(processed);
         StringBuffer sb1 = new StringBuffer();
@@ -99,7 +104,7 @@ public class PdfExportService {
         // 예: [\[현대자동차\] \[계약직\] CS강사 채용]: https://...
         // ============================================
         Pattern bracketInTitleRefPattern = Pattern.compile(
-                "\\[((?:[^\\[\\]]|\\[[^\\]]*\\]|\\\\\\[|\\\\\\])+)\\]:\\s*(https?://\\S+)"
+                "\\[((?:[^\\[\\]]|\\[[^\\]]*\\]|\\\\\\[|\\\\\\])+)\\]:\\s*\"?(https?://[^\\s\"]+)\"?"
         );
         Matcher m3 = bracketInTitleRefPattern.matcher(processed);
         StringBuffer sb2 = new StringBuffer();
@@ -118,7 +123,7 @@ public class PdfExportService {
         // 예: [TNC공지] 현대자동차 CS강사 역량 향상 과정 진행: https://...
         // ============================================
         Pattern tagTitleUrlPattern = Pattern.compile(
-                "(?<!\">)(\\[[^\\]]+\\])\\s+([^:\\[\\]\\n]+):\\s*(https?://\\S+)"
+                "(?<!\">)(\\[[^\\]]+\\])\\s+([^:\\[\\]\\n]+):\\s*\"?(https?://[^\\s\"]+)\"?"
         );
         Matcher m4 = tagTitleUrlPattern.matcher(processed);
         StringBuffer sb3 = new StringBuffer();
@@ -137,7 +142,7 @@ public class PdfExportService {
         // [일반제목]: URL 패턴
         // ============================================
         Pattern simpleRefPattern = Pattern.compile(
-                "(?<!\">)\\[([^\\]\\[]+)\\]:\\s*(https?://\\S+)"
+                "(?<!\">)\\[([^\\]\\[]+)\\]:\\s*\"?(https?://[^\\s\"]+)\"?"
         );
         Matcher m6 = simpleRefPattern.matcher(processed);
         StringBuffer sb4 = new StringBuffer();
@@ -154,7 +159,7 @@ public class PdfExportService {
         // [일반제목](URL) 패턴
         // ============================================
         Pattern simpleLinkPattern = Pattern.compile(
-                "(?<!\">)\\[([^\\]]+)\\]\\((https?://[^)]+)\\)"
+                "(?<!\">)\\[([^\\]]+)\\]\\(\\s*\"?(https?://[^)\"]+)\"?\\s*\\)"
         );
         Matcher m5 = simpleLinkPattern.matcher(processed);
         StringBuffer sb5 = new StringBuffer();

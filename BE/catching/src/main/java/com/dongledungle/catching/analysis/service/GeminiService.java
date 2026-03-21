@@ -22,7 +22,7 @@ import java.util.Map;
 public class GeminiService {
 
     @Value("${gemini.api-key}")
-    private String apiKey;
+    private String apiKey1;
 
     @Value("classpath:prompts/prompt-company-position-search.st")
     private Resource companyPositionSearchPromptResource;
@@ -51,7 +51,8 @@ public class GeminiService {
                                                                   String position, String analysisDepth) {
         return generateContent(
                 loadPrompt(companyPositionSearchPromptResource),
-                Map.of("today", today, "company", company, "position", position, "analysisDepth", analysisDepth)
+                Map.of("today", today, "company", company, "position", position, "analysisDepth", analysisDepth),
+                apiKey1
         );
     }
 
@@ -62,7 +63,8 @@ public class GeminiService {
                                                                        String analysisDepth) {
         return generateContent(
                 loadPrompt(prompt1),
-                Map.of("today", today, "company", company, "analysisDepth", analysisDepth)
+                Map.of("today", today, "company", company, "analysisDepth", analysisDepth),
+                apiKey1
         );
     }
 
@@ -73,7 +75,8 @@ public class GeminiService {
                                                                        String analysisDepth) {
         return generateContent(
                 loadPrompt(prompt2),
-                Map.of("today", today, "company", company, "analysisDepth", analysisDepth)
+                Map.of("today", today, "company", company, "analysisDepth", analysisDepth),
+                apiKey1
         );
     }
 
@@ -84,7 +87,8 @@ public class GeminiService {
                                                                        String position, String analysisDepth) {
         return generateContent(
                 loadPrompt(prompt3),
-                Map.of("today", today, "company", company, "position", position, "analysisDepth", analysisDepth)
+                Map.of("today", today, "company", company, "position", position, "analysisDepth", analysisDepth),
+                apiKey1
         );
     }
 
@@ -95,7 +99,8 @@ public class GeminiService {
                                                                        String position, String analysisDepth) {
         return generateContent(
                 loadPrompt(prompt4),
-                Map.of("today", today, "company", company, "position", position, "analysisDepth", analysisDepth)
+                Map.of("today", today, "company", company, "position", position, "analysisDepth", analysisDepth),
+                apiKey1
         );
     }
 
@@ -105,7 +110,8 @@ public class GeminiService {
      * Gemini API 호출 핵심 로직
      */
     private ResponseStream<GenerateContentResponse> generateContent(String systemPrompt,
-                                                                    Map<String, String> userInputs) {
+                                                                    Map<String, String> userInputs,
+                                                                    String apiKey) {
         Client client = Client.builder().apiKey(apiKey).build();
 
         // User Message 생성
