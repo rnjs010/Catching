@@ -1,5 +1,4 @@
-![대표사진]()
-
+![대표사진](https://github.com/user-attachments/assets/1696c5c2-bde1-40f2-991a-389f23bff393)
 ## 📌 목차
 
 1. [프로젝트 소개](#-프로젝트-소개)
