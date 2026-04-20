@@ -11,6 +11,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.FileCopyUtils;
+import com.google.genai.types.SafetySetting;
+import com.google.genai.types.HarmCategory;
+import com.google.genai.types.HarmBlockThreshold;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -132,6 +135,31 @@ public class GeminiService {
                 .thinkingConfig(ThinkingConfig.builder().thinkingBudget(0).build())
                 .tools(List.of(createGoogleSearchTool()))
                 .systemInstruction(Content.fromParts(Part.fromText(systemPrompt)))
+                .safetySettings(List.of(
+                        // 위험한 콘텐츠 필터
+                        SafetySetting.builder()
+                                .category(HarmCategory.Known.HARM_CATEGORY_DANGEROUS_CONTENT)
+                                .threshold(HarmBlockThreshold.Known.BLOCK_ONLY_HIGH)
+                                .build(),
+
+                        // 괴롭힘/성희롱 필터
+                        SafetySetting.builder()
+                                .category(HarmCategory.Known.HARM_CATEGORY_HARASSMENT)
+                                .threshold(HarmBlockThreshold.Known.BLOCK_ONLY_HIGH)
+                                .build(),
+
+                        // 혐오 발언 필터
+                        SafetySetting.builder()
+                                .category(HarmCategory.Known.HARM_CATEGORY_HATE_SPEECH)
+                                .threshold(HarmBlockThreshold.Known.BLOCK_ONLY_HIGH)
+                                .build(),
+
+                        // 성적으로 노골적인 콘텐츠 필터
+                        SafetySetting.builder()
+                                .category(HarmCategory.Known.HARM_CATEGORY_SEXUALLY_EXPLICIT)
+                                .threshold(HarmBlockThreshold.Known.BLOCK_ONLY_HIGH)
+                                .build()
+                ))
                 .build();
 
         return client.models.generateContentStream(MODEL, contents, config);
