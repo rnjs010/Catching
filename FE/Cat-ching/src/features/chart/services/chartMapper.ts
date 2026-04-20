@@ -1,6 +1,5 @@
+import { CHART_COLORS } from "@/styles/colors";
 import { PieItem, WeeklyPopularChartApiItem } from "@/types/chart";
-
-const CHART_COLORS = ["#003f98", "#0057ff", "#61a4ff", "#cfe3ff", "#001c57"];
 
 const pad = (num: number) => String(num).padStart(2, "0");
 

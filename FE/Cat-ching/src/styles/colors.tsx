@@ -25,4 +25,14 @@ export const colors = {
   red: "#E0393C",
 } as const;
 
+// 차트 색상
+// ["#003f98", "#0057ff", "#61a4ff", "#cfe3ff", "#001c57"];
+export const CHART_COLORS = [
+  colors.blue90,
+  colors.blue70,
+  colors.blue60,
+  colors.blue50,
+  colors.blue40,
+] as const;
+
 export type ColorName = keyof typeof colors;
