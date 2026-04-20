@@ -33,6 +33,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Slf4j
 @RestController
@@ -276,11 +278,18 @@ public class AnalysisController {
 
                 log.debug("[{}] API 호출 시작", promptName);
                 String response = collectStreamResponse(streamSupplier.get());
+
+                Matcher headerMatcher = Pattern.compile("(?m)^#+\\s").matcher(response);
+                if (headerMatcher.find()) {
+                    response = response.substring(headerMatcher.start());
+                }
+
+                String resolvedResponse = urlResolverService.replaceAllRedirectUrls(response);
                 log.info("[{}] 성공", promptName);
 
                 // 성공하면 바로 SSE 전송
-                sendSseEvent(emitter, promptName, response);
-                return response;
+                sendSseEvent(emitter, promptName, resolvedResponse);
+                return resolvedResponse;
 
             } catch (Exception e) {
                 log.error("[{}] 실패 (시도 {}/{}): {}", promptName, attempt, MAX_AUTO_RETRIES, e.getMessage());
