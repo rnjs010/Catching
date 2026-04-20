@@ -22,6 +22,16 @@ public interface HistoryRepository extends JpaRepository<History, Long> {
             """)
     List<Object[]> findTop5ByYearWeek(@Param("yearMonthWeek") String yearMonthWeek);
 
+    // 전체 기간(All-time)의 인기 Top 5 조회 (Fallback용)
+    @Query("""
+        SELECT h.companyPositionId, COUNT(h) as viewCount
+        FROM history h
+        GROUP BY h.companyPositionId
+        ORDER BY COUNT(h) DESC
+        LIMIT 5
+        """)
+    List<Object[]> findTop5AllTime();
+
     // 특정 직무정보 ID의 조회수 조회
     long countByCompanyPositionIdAndYearMonthWeek(Long companyPositionId, String yearMonthWeek);
 
