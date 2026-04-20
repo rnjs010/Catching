@@ -6,9 +6,10 @@ import { FcGoogle } from "react-icons/fc";
 import { ResponsivePie } from "@nivo/pie";
 import blueCat from "@/assets/blueCat.png";
 import { useState } from "react";
-import { PieItem } from "@/types/chart.type";
+import { PieItem } from "@/types/chart";
 import BlurText from "@/components/BlurText";
 import { useAuthStore } from "@/stores/authStore";
+import { useWeeklyPopularChart } from "@/features/chart/hooks/useWeeklyPopularChart";
 
 export const ContentArea = styled.div`
   ${tw`flex flex-col items-center justify-center flex-1 w-full`}
@@ -37,22 +38,34 @@ export const LoginButton = styled.button`
 `;
 
 // 차트 관련
-const DefaultChartText = () => (
+const DefaultChartText = ({
+  totalCount,
+  dateRangeText,
+}: {
+  totalCount: number;
+  dateRangeText: string;
+}) => (
   <>
-    <Text color="gray60">총 15,321명 조사</Text>
+    <Text color="gray60">총 {totalCount.toLocaleString()}명 조사</Text>
     <Text variant="2xl" weight="semibold">
       가장 인기 있는 회사/직무
     </Text>
     <Text variant="sm" weight="normal" color="gray60">
-      2025.09.08~2025.09.15
+      {dateRangeText}
     </Text>
   </>
 );
 
-const HoverChartText = ({ item }: { item: PieItem }) => (
+const HoverChartText = ({
+  item,
+  dateRangeText,
+}: {
+  item: PieItem;
+  dateRangeText: string;
+}) => (
   <>
     <Text variant="sm" color="gray60" tw="animate-fade-in-slow">
-      {item.value}명 조사
+      {item.value.toLocaleString()}명 조사
     </Text>
     <Text variant="xl" tw="animate-fade-in-slow">
       {item.label}
@@ -65,7 +78,7 @@ const HoverChartText = ({ item }: { item: PieItem }) => (
       className="text-2xl font-semibold text-[#0058CC]"
     />
     <Text variant="sm" weight="normal" color="gray60">
-      2025.09.08~2025.09.15
+      {dateRangeText}
     </Text>
   </>
 );
@@ -109,32 +122,13 @@ const MyPie = ({ pieData, setHoverId, hoverId }: MyPieProps) => {
 export default function Home() {
   const { login, isLoading } = useAuthStore();
 
-  // 임시 데이터
-  const pieData = [
-    {
-      id: 1,
-      label: "삼성 SDS",
-      job: "SW 개발/설계",
-      value: 40,
-      color: "#003f98",
-    },
-    {
-      id: 2,
-      label: "현대오토에버",
-      job: "백엔드 개발자",
-      value: 25,
-      color: "#0057ff",
-    },
-    {
-      id: 3,
-      label: "회사C",
-      job: "데이터 분석가",
-      value: 15,
-      color: "#61a4ff",
-    },
-    { id: 4, label: "회사D", job: "마케팅", value: 12, color: "#cfe3ff" },
-    { id: 5, label: "회사E", job: "인사/총무", value: 8, color: "#001c57" },
-  ];
+  const {
+    pieData,
+    totalCount,
+    dateRangeText,
+    isLoading: isChartLoading,
+    isError,
+  } = useWeeklyPopularChart();
 
   const [hoverId, setHoverId] = useState<number | null>(null);
   const hoveredItem = pieData.find((item) => item.id === hoverId);
@@ -149,9 +143,12 @@ export default function Home() {
         {/* TEXT */}
         <ChartText>
           {hoveredItem ? (
-            <HoverChartText item={hoveredItem} />
+            <HoverChartText item={hoveredItem} dateRangeText={dateRangeText} />
           ) : (
-            <DefaultChartText />
+            <DefaultChartText
+              totalCount={totalCount}
+              dateRangeText={dateRangeText}
+            />
           )}
         </ChartText>
 
