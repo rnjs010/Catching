@@ -35,6 +35,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import jakarta.validation.Valid;
 
 @Slf4j
 @RestController
@@ -62,7 +63,7 @@ public class AnalysisController {
     }
 
     @PostMapping(value = "/text", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter analyzeText(Authentication authentication, @RequestBody AnalysisRequestDto request) {
+    public SseEmitter analyzeText(Authentication authentication, @Valid @RequestBody AnalysisRequestDto request) {
         Long userId = Long.parseLong((String) authentication.getPrincipal());
         SseEmitter emitter = new SseEmitter(600000L);
 
