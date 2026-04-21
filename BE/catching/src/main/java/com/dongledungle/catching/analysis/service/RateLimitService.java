@@ -20,7 +20,7 @@ public class RateLimitService {
     // 분석 진행 중 상태 (userId:company:position -> 시작 시간)
     private final Map<String, Instant> processingAnalysis = new ConcurrentHashMap<>();
 
-    private static final long COOLDOWN_SECONDS = 60; // 1분 제한
+    private static final long COOLDOWN_SECONDS = 50; // 50초 제한
     private static final long PROCESSING_TIMEOUT_MINUTES = 10; // 처리 중 타임아웃
 
     private final ScheduledExecutorService cleanupScheduler;
