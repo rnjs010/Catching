@@ -56,4 +56,20 @@ public class HistoryService {
         log.info("History 저장: userId={}, companyPositionId={}, week={}",
                 userId, companyPositionId, currentMonthWeek);
     }
+
+    /**
+     * 히스토리 소프트 딜리트
+     */
+    @Transactional
+    public void deleteHistory(Long userId, Long historyId) {
+        History history = historyRepository.findById(historyId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 히스토리입니다."));
+
+        if (!history.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("본인의 히스토리만 삭제할 수 있습니다.");
+        }
+
+        history.markAsDeleted();
+        log.info("History 소프트 삭제 처리: historyId={}, userId={}", historyId, userId);
+    }
 }

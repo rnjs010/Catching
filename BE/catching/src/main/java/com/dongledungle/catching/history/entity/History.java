@@ -33,6 +33,14 @@ public class History {
     @Column(name="year_month_week", nullable = false)
     private String yearMonthWeek; //"2025-11-W3" (2025년 11월 3주차)
 
+    @Column(name = "is_deleted", nullable = false, columnDefinition = "boolean default false")
+    @Builder.Default
+    private boolean isDeleted = false;
+
+    public void markAsDeleted() {
+        this.isDeleted = true;
+    }
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "company_position_id", insertable = false, updatable = false)
     private Analysis analysis;
