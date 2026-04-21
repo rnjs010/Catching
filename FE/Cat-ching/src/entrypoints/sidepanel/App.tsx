@@ -10,12 +10,13 @@ import Result from "@/pages/Result";
 import Register from "@/pages/Register";
 import Settings from "@/pages/Settings";
 import HistoryDrawer from "@/components/HistoryDrawer";
+import Chart from "@/pages/Chart";
 import { useAuthStore } from "@/stores/authStore";
 import { useAppStore } from "@/stores/appStore";
 import { useEffect, useState } from "react";
 
 const Container = styled.div`
-  ${tw`w-full px-2 py-1 min-h-screen flex flex-col justify-between items-center`}
+  ${tw`w-full px-2 min-h-screen flex flex-col justify-between items-center`}
 `;
 
 const ContentWrapper = styled.div`
@@ -70,6 +71,7 @@ function App() {
         {currentPage === "search" && <Search />}
         {currentPage === "settings" && <Settings />}
         {currentPage === "analysis" && <Result />}
+        {currentPage === "chart" && <Chart />}
       </ContentWrapper>
       <Footer />
 

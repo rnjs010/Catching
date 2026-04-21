@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AnalysisSectionKey, createSectionState } from "@/stores/analysisStore";
 import { useAuthStore } from "@/stores/authStore";
 import { useAnalysisInputStore } from "@/stores/analysisInputStore";
 import { useAnalysisStore } from "@/stores/analysisStore";
 import { useAnalysisSSE } from "./useAnalysis";
-import { notionService } from "@/services/notionService";
-import { exportService } from "@/services/exportService";
+import { useResultExport } from "./useResultExport";
 
 export function useResultLifecycle() {
   const { company, position } = useAnalysisInputStore();
@@ -60,62 +59,19 @@ export function useResultLifecycle() {
     });
   }, [isComplete]);
 
-  // 팝업 관리
-  const [popupConfig, setPopupConfig] = useState<{
-    isOpen: boolean;
-    message: string;
-    onConfirm?: () => void;
-  }>({
-    isOpen: false,
-    message: "",
+  // 내보내기 훅
+  const {
+    handleExportNotion,
+    handleExportPdf,
+    isNotionLoading,
+    isPdfLoading,
+    popupConfig,
+    closePopup,
+  } = useResultExport({
+    analysisId,
+    company,
+    position,
   });
-
-  const closePopup = () =>
-    setPopupConfig((prev) => ({ ...prev, isOpen: false }));
-
-  // Notion / PDF 내보내기 상태
-  const [isNotionLoading, setIsNotionLoading] = useState(false);
-  const [isPdfLoading, setIsPdfLoading] = useState(false);
-
-  const handleExportNotion = async () => {
-    if (!analysisId || isNotionLoading) return;
-
-    setIsNotionLoading(true);
-    try {
-      await notionService.exportToNotion(analysisId);
-      setPopupConfig({
-        isOpen: true,
-        message: "Notion에 성공적으로 추가되었습니다.",
-      });
-    } catch {
-      setPopupConfig({
-        isOpen: true,
-        message: "Notion 추가에 실패했습니다. 연동 상태를 확인해주세요.",
-      });
-    } finally {
-      setIsNotionLoading(false);
-    }
-  };
-
-  const handleExportPdf = async () => {
-    if (!analysisId || isPdfLoading) return;
-
-    setIsPdfLoading(true);
-    try {
-      await exportService.downloadAnalysisPdf(analysisId, company, position);
-      setPopupConfig({
-        isOpen: true,
-        message: "PDF 파일이 성공적으로 저장되었습니다.",
-      });
-    } catch {
-      setPopupConfig({
-        isOpen: true,
-        message: "PDF 저장에 실패했습니다.",
-      });
-    } finally {
-      setIsPdfLoading(false);
-    }
-  };
 
   return {
     company,

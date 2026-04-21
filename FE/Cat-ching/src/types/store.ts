@@ -5,7 +5,8 @@ export type Page =
   | "search"
   | "loading"
   | "analysis"
-  | "settings";
+  | "settings"
+  | "chart";
 
 export interface AppState {
   currentPage: Page;

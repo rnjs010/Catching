@@ -1,14 +1,13 @@
-import { useState } from "react";
 import styled from "styled-components";
 import tw from "twin.macro";
-import { ResponsivePie } from "@nivo/pie";
-
 import { Text } from "@/styles/typography";
 import { colors } from "@/styles/colors";
 import blueCat from "@/assets/blueCat.png";
 import BlurText from "@/components/BlurText";
 import { PieItem } from "@/types/chart";
 import { useWeeklyPopularChart } from "@/features/chart/hooks/useWeeklyPopularChart";
+import { ResponsivePie } from "@nivo/pie";
+import { useState } from "react";
 
 const ChartSection = styled.div`
   ${tw`flex flex-col items-center justify-center w-full`}
@@ -87,9 +86,15 @@ type PieChartProps = {
   pieData: PieItem[];
   hoverId: number | null;
   setHoverId: (value: number | null) => void;
+  onSliceClick?: (item: PieItem) => void;
 };
 
-const PieChart = ({ pieData, hoverId, setHoverId }: PieChartProps) => {
+const PieChart = ({
+  pieData,
+  hoverId,
+  setHoverId,
+  onSliceClick,
+}: PieChartProps) => {
   return (
     <ResponsivePie
       data={pieData}
@@ -114,12 +119,24 @@ const PieChart = ({ pieData, hoverId, setHoverId }: PieChartProps) => {
       }}
       onMouseEnter={(d: any) => setHoverId(Number(d.id))}
       onMouseLeave={() => setHoverId(null)}
+      onClick={(d: any) => {
+        const clicked = pieData.find((item) => item.id === Number(d.id));
+        if (clicked) {
+          onSliceClick?.(clicked);
+        }
+      }}
       tooltip={() => null}
     />
   );
 };
 
-export default function WeeklyPopularChart() {
+type WeeklyPopularChartProps = {
+  onSliceClick?: (item: PieItem) => void;
+};
+
+export default function WeeklyPopularChart({
+  onSliceClick,
+}: WeeklyPopularChartProps) {
   const {
     pieData,
     totalCount,
@@ -168,6 +185,7 @@ export default function WeeklyPopularChart() {
               pieData={pieData}
               hoverId={hoverId}
               setHoverId={setHoverId}
+              onSliceClick={onSliceClick}
             />
             <InnerIcon>
               <img src={blueCat} alt="blue cat" />

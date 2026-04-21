@@ -4,6 +4,7 @@ import { Text } from "@/styles/typography";
 import { colors } from "@/styles/colors";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { MarkdownRender } from "./markdownRender";
+import { useEffect, useRef, useState } from "react";
 
 const SectionWrapper = styled.div`
   ${tw`space-y-2`}
@@ -14,11 +15,14 @@ const SectionHeader = styled.button`
   background-color: ${colors.blue40};
 `;
 
-const SectionContent = styled.div<{ $open: boolean }>`
-  ${tw`px-1.5 overflow-hidden transition-all duration-300`};
-
-  max-height: ${({ $open }) => ($open ? "2000px" : "0")};
+const SectionContentOuter = styled.div<{ $open: boolean; $height: number }>`
+  ${tw`overflow-hidden transition-all duration-300 ease-in-out`}
+  max-height: ${({ $open, $height }) => ($open ? `${$height}px` : "0px")};
   opacity: ${({ $open }) => ($open ? 1 : 0)};
+`;
+
+const SectionContentInner = styled.div`
+  ${tw`px-1.5`}
 `;
 
 const TypingIndicator = ({ text = "AI 분석 중..." }: { text?: string }) => (
@@ -56,6 +60,16 @@ export function ResultSection({
   isLoading,
   isTyping,
 }: Props) {
+  const innerRef = useRef<HTMLDivElement | null>(null);
+  const [contentHeight, setContentHeight] = useState(0);
+
+  useEffect(() => {
+    if (!innerRef.current) return;
+
+    // 실제 콘텐츠 높이 측정
+    setContentHeight(innerRef.current.scrollHeight);
+  }, [content, isLoading, isTyping, open]);
+
   return (
     <SectionWrapper>
       <SectionHeader onClick={onToggle}>
@@ -65,11 +79,13 @@ export function ResultSection({
         {open ? <ChevronDown /> : <ChevronRight />}
       </SectionHeader>
 
-      <SectionContent $open={open}>
-        {content && <MarkdownRender text={content} />}
-        {isLoading && <TypingIndicator />}
-        {isTyping && <TypingIndicator text="입력 중..." />}
-      </SectionContent>
+      <SectionContentOuter $open={open} $height={contentHeight}>
+        <SectionContentInner ref={innerRef}>
+          {content && <MarkdownRender text={content} />}
+          {isLoading && <TypingIndicator />}
+          {isTyping && <TypingIndicator text="입력 중..." />}
+        </SectionContentInner>
+      </SectionContentOuter>
     </SectionWrapper>
   );
 }

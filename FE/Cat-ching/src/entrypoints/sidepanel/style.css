@@ -27,14 +27,40 @@ a:hover {
   color: #535bf2;
 }
 
+/* 스크롤바 숨기기 */
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+#root::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
 body {
   margin: 0;
   place-items: center;
   min-width: 320px;
   max-width: 100vw;
   min-height: 100vh;
-  font-family: Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto,
-    "Helvetica Neue", "Segoe UI", Arial, sans-serif;
+  font-family:
+    Pretendard,
+    -apple-system,
+    BlinkMacSystemFont,
+    system-ui,
+    Roboto,
+    "Helvetica Neue",
+    "Segoe UI",
+    Arial,
+    sans-serif;
 }
 
 h1 {

@@ -4,10 +4,11 @@ import { Text } from "@/styles/typography";
 import { colors } from "@/styles/colors";
 import { RxHamburgerMenu } from "react-icons/rx";
 import { IoBarChartOutline, IoArrowBack } from "react-icons/io5";
+import { RiCloseLargeFill } from "react-icons/ri";
 import { useAuthStore } from "@/stores/authStore";
-import { useState } from "react";
-import AlertPopup from "./AlertPopup";
 import { useAppStore } from "@/stores/appStore";
+import AlertPopup from "./AlertPopup";
+import { useState } from "react";
 
 export const HeaderWrapper = styled.div`
   ${tw`w-full flex justify-between items-center px-1 sticky top-0 z-10`}
@@ -43,12 +44,6 @@ export default function Header({ onMenuClick }: HeaderProps) {
     }
   };
 
-  const handleChartClick = () => {
-    if (!isAuthenticated) {
-      setShowAlert(true);
-    }
-  };
-
   const handleHomeClick = () => {
     if (!isAuthenticated) {
       navigate("home");
@@ -57,9 +52,24 @@ export default function Header({ onMenuClick }: HeaderProps) {
     }
   };
 
+  const handleChartClick = () => {
+    if (!isAuthenticated) {
+      setShowAlert(true);
+      return;
+    }
+
+    navigate("chart");
+  };
+
+  const isChartPage = currentPage === "chart";
+  const handleCloseChartClick = () => {
+    goBack();
+  };
+
   return (
     <>
       <HeaderWrapper>
+        {/* Menu Button */}
         <IconButton
           onClick={handleMenuClick}
           aria-label={currentPage === "settings" ? "Back" : "Open Side Menu"}
@@ -70,16 +80,26 @@ export default function Header({ onMenuClick }: HeaderProps) {
             <RxHamburgerMenu size={24} />
           )}
         </IconButton>
+
+        {/* Logo Button */}
         <IconButton onClick={handleHomeClick} aria-label="Go to Home">
           <Text variant="xl" weight="normal">
             <Text color="blue80">C</Text>at-ching
           </Text>
         </IconButton>
+
+        {/* CHART BUTTON */}
         <IconButton
-          onClick={handleChartClick}
-          aria-label="Open Statistical Chart"
+          onClick={isChartPage ? handleCloseChartClick : handleChartClick}
+          aria-label={
+            isChartPage ? "Close Chart Page" : "Open Statistical Chart"
+          }
         >
-          <IoBarChartOutline size={24} />
+          {isChartPage ? (
+            <RiCloseLargeFill size={24} />
+          ) : (
+            <IoBarChartOutline size={24} />
+          )}
         </IconButton>
       </HeaderWrapper>
 
