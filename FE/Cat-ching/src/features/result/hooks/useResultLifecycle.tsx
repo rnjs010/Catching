@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
-import { AnalysisSectionKey, createSectionState } from "@/stores/analysisStore";
+import { useEffect, useState } from "react";
 import { useAuthStore } from "@/stores/authStore";
 import { useAnalysisInputStore } from "@/stores/analysisInputStore";
 import { useAnalysisStore } from "@/stores/analysisStore";
 import { useAnalysisSSE } from "./useAnalysis";
 import { useResultExport } from "./useResultExport";
+import { useResultSectionUI } from "./useResultSectionUI";
 
 export function useResultLifecycle() {
   const { company, position } = useAnalysisInputStore();
@@ -23,20 +23,14 @@ export function useResultLifecycle() {
     })();
   }, []);
 
-  // 섹션 상태
-  const initialOpenState = createSectionState(true);
-  const [open, setOpen] =
-    useState<Record<AnalysisSectionKey, boolean>>(initialOpenState);
-
-  const toggleSection = useCallback((key: AnalysisSectionKey) => {
-    setOpen((prev) => ({ ...prev, [key]: !prev[key] }));
-  }, []);
+  const { open, toggleSection, resetOpenState, openCompanyIssueOnly } =
+    useResultSectionUI(true);
 
   // 분석 실행
   useEffect(() => {
     if (!company || !position || !token || isComplete) return;
 
-    setOpen(initialOpenState);
+    resetOpenState(true);
 
     start({
       company,
@@ -52,11 +46,7 @@ export function useResultLifecycle() {
   // 분석 완료 후 UI 조정
   useEffect(() => {
     if (!isComplete) return;
-
-    setOpen({
-      ...createSectionState(false),
-      companyIssue: true,
-    });
+    openCompanyIssueOnly();
   }, [isComplete]);
 
   // 내보내기 훅

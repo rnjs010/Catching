@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
-import { AnalysisSectionKey, createSectionState } from "@/stores/analysisStore";
+import { useEffect, useState } from "react";
+import { createSectionState } from "@/stores/analysisStore";
 import { parseMarkdownToSections } from "@/features/result/utils/parseMarkdown";
 import { getChartDetail } from "../services/chartDetailService";
 import { useResultExport } from "@/features/result/hooks/useResultExport";
+import { useResultSectionUI } from "@/features/result/hooks/useResultSectionUI";
 
 export function useDetailResult(analysisId: number | null) {
   const [company, setCompany] = useState("");
@@ -12,16 +13,11 @@ export function useDetailResult(analysisId: number | null) {
   const [loadingStates, setLoadingStates] = useState(createSectionState(false));
   const [typingStates, setTypingStates] = useState(createSectionState(false));
 
-  const initialOpenState = createSectionState(true);
-  const [open, setOpen] =
-    useState<Record<AnalysisSectionKey, boolean>>(initialOpenState);
-
   const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState(false);
 
-  const toggleSection = useCallback((key: AnalysisSectionKey) => {
-    setOpen((prev) => ({ ...prev, [key]: !prev[key] }));
-  }, []);
+  const { open, toggleSection, openCompanyIssueOnly } =
+    useResultSectionUI(true);
 
   useEffect(() => {
     if (!analysisId) return;
@@ -45,10 +41,7 @@ export function useDetailResult(analysisId: number | null) {
         setPosition(data.position);
         setSections(parsedSections);
 
-        setOpen({
-          ...createSectionState(false),
-          companyIssue: true,
-        });
+        openCompanyIssueOnly();
       } catch (error) {
         console.error("분석 상세 조회 실패:", error);
         if (!isMounted) return;

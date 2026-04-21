@@ -22,11 +22,11 @@ const SectionContentOuter = styled.div<{ $open: boolean; $height: number }>`
 `;
 
 const SectionContentInner = styled.div`
-  ${tw`px-1.5`}
+  ${tw`px-1.5 pt-2`}
 `;
 
 const TypingIndicator = ({ text = "AI 분석 중..." }: { text?: string }) => (
-  <div className="flex items-center gap-1 text-gray-400 mt-2">
+  <div className="flex items-center gap-1 text-gray-400">
     <span>{text}</span>
     <BlinkCursor />
   </div>

@@ -9,16 +9,16 @@ const formatDate = (date: Date) => {
 
 /**
  * "2026-04-W3" -> "2026.04.15~2026.04.21" 형태
- * 규칙:
- * W1 = 1~7일
- * W2 = 8~14일
- * W3 = 15~21일
- * W4 = 22~28일
- * W5 = 29일~말일
+ * - 해당 월의 첫 번째 월요일부터 1주차 시작
+ * - 각 주는 월~일
+ * - all-time이면 날짜 범위 대신 전체 기간 문구 반환
  */
 export const formatYearMonthWeekRange = (yearMonthWeek: string) => {
-  const match = yearMonthWeek.match(/^(\d{4})-(\d{2})-W(\d)$/);
+  if (yearMonthWeek === "all-time") {
+    return "전체 기간 기준";
+  }
 
+  const match = yearMonthWeek.match(/^(\d{4})-(\d{2})-W(\d)$/);
   if (!match) return "";
 
   const [, yearStr, monthStr, weekStr] = match;
@@ -26,11 +26,25 @@ export const formatYearMonthWeekRange = (yearMonthWeek: string) => {
   const month = Number(monthStr);
   const week = Number(weekStr);
 
-  const startDay = (week - 1) * 7 + 1;
-  const endDay = week === 5 ? new Date(year, month, 0).getDate() : week * 7;
+  if (week < 1) return "";
 
-  const startDate = new Date(year, month - 1, startDay);
-  const endDate = new Date(year, month - 1, endDay);
+  // 해당 월의 1일
+  const firstDayOfMonth = new Date(year, month - 1, 1);
+
+  // 해당 월의 첫 번째 월요일 찾기
+  const firstMonday = new Date(firstDayOfMonth);
+  const firstDay = firstMonday.getDay(); // 일:0, 월:1 ...
+  const daysUntilMonday =
+    firstDay === 0 ? 1 : firstDay === 1 ? 0 : 8 - firstDay;
+  firstMonday.setDate(firstMonday.getDate() + daysUntilMonday);
+  firstMonday.setHours(0, 0, 0, 0);
+
+  // W1의 시작이 firstMonday, W2는 +7일, W3는 +14일 ...
+  const startDate = new Date(firstMonday);
+  startDate.setDate(firstMonday.getDate() + (week - 1) * 7);
+
+  const endDate = new Date(startDate);
+  endDate.setDate(startDate.getDate() + 6);
 
   return `${formatDate(startDate)}~${formatDate(endDate)}`;
 };

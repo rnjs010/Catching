@@ -21,7 +21,7 @@ const ContentArea = styled.div`
 `;
 
 const SearchButton = styled.button<{ isActive: boolean }>`
-  ${tw`w-11/12 px-2 py-2 rounded-xl shadow-custom flex flex-row justify-center items-center gap-1
+  ${tw`w-11/12 px-2 py-2 mb-2 rounded-xl shadow-custom flex flex-row justify-center items-center gap-1
     sticky bottom-0 transition-colors duration-300`}
 
   ${({ isActive }) =>

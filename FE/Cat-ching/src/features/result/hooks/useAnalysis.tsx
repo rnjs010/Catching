@@ -42,7 +42,7 @@ export const useAnalysisSSE = () => {
     key: keyof AnalysisSections,
     text: string,
     signal: AbortSignal,
-    speed = 40,
+    speed = 80,
   ) => {
     setLoading(key, false);
     setTyping(key, true);
