@@ -59,7 +59,18 @@ public class PopularAnalysisService {
     public List<PopularAnalysisDto> getCurrentWeekPopular() {
         String currentWeek = WeekUtil.getCurrentYearMonthWeek();
 
+        // 이번주 데이터 먼저 시도
         List<Object[]> top5 = historyRepository.findTop5ByYearWeek(currentWeek);
+        String appliedWeekLabel = currentWeek;
+
+        // 만약 이번주 데이터 없다면 전체기간으로 fallback
+        if (top5 == null || top5.isEmpty()) {
+            log.info("이번 주({}) 인기 분석 데이터가 없어 전체 기간 Top 5로 대체합니다.", currentWeek);
+            top5 = historyRepository.findTop5AllTime();
+            appliedWeekLabel = "all-time";
+        }
+
+        final String finalWeekLabel = appliedWeekLabel;
 
         return top5.stream()
                 .map(arr -> {
@@ -74,7 +85,7 @@ public class PopularAnalysisService {
                             .company(analysis.getCompany())
                             .position(analysis.getPosition())
                             .viewCount(viewCount)
-                            .yearMonthWeek(currentWeek)
+                            .yearMonthWeek(finalWeekLabel)
                             .build();
                 })
                 .filter(Objects::nonNull)

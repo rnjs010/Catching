@@ -10,6 +10,7 @@ import com.dongledungle.catching.analysis.service.GeminiService;
 import com.dongledungle.catching.analysis.service.RateLimitService;
 import com.dongledungle.catching.analysis.service.UrlResolverService;
 import com.dongledungle.catching.auth.entity.User;
+import com.dongledungle.catching.analysis.exception.SafetyBlockedException;
 import com.dongledungle.catching.common.response.ApiResponse;
 import com.dongledungle.catching.common.util.JsonParserUtil;
 import com.dongledungle.catching.history.service.HistoryService;
@@ -33,6 +34,9 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import jakarta.validation.Valid;
 
 @Slf4j
 @RestController
@@ -60,7 +64,7 @@ public class AnalysisController {
     }
 
     @PostMapping(value = "/text", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter analyzeText(Authentication authentication, @RequestBody AnalysisRequestDto request) {
+    public SseEmitter analyzeText(Authentication authentication, @Valid @RequestBody AnalysisRequestDto request) {
         Long userId = Long.parseLong((String) authentication.getPrincipal());
         SseEmitter emitter = new SseEmitter(600000L);
 
@@ -276,13 +280,24 @@ public class AnalysisController {
 
                 log.debug("[{}] API 호출 시작", promptName);
                 String response = collectStreamResponse(streamSupplier.get());
+
+                Matcher headerMatcher = Pattern.compile("(?m)^#+\\s").matcher(response);
+                if (headerMatcher.find()) {
+                    response = response.substring(headerMatcher.start());
+                }
+
+                String resolvedResponse = urlResolverService.replaceAllRedirectUrls(response);
                 log.info("[{}] 성공", promptName);
 
                 // 성공하면 바로 SSE 전송
-                sendSseEvent(emitter, promptName, response);
-                return response;
+                sendSseEvent(emitter, promptName, resolvedResponse);
+                return resolvedResponse;
 
             } catch (Exception e) {
+                if (e instanceof SafetyBlockedException) {
+                    log.warn("[{}] 안전 정책 위반으로 차단됨", promptName);
+                    throw (SafetyBlockedException) e; // Fail-fast
+                }
                 log.error("[{}] 실패 (시도 {}/{}): {}", promptName, attempt, MAX_AUTO_RETRIES, e.getMessage());
 
                 if (attempt >= MAX_AUTO_RETRIES) {
@@ -338,6 +353,10 @@ public class AnalysisController {
 
             } catch (Exception e) {
                 lastException = e;
+                if (e instanceof SafetyBlockedException) {
+                    log.warn("AI 분석 차단됨 (Safety Policy): {}", e.getMessage());
+                    throw (SafetyBlockedException) e; // Fail-fast
+                }
                 log.error("AI 분석 실패 (시도 {}/{}): {}", attempt, MAX_AUTO_RETRIES, e.getMessage());
             }
         }
@@ -359,6 +378,14 @@ public class AnalysisController {
                 return;
 
             } catch (Exception e) {
+                if (e instanceof SafetyBlockedException) {
+                    log.warn("AI 분석 차단됨 (Safety Policy): {}", e.getMessage());
+                    String errorType = determineErrorType(e);
+                    String errorMessage = getUserFriendlyMessage(errorType);
+                    sendSseEvent(emitter, "error", gson.toJson(new ErrorResponse(errorType, errorMessage)));
+                    emitter.completeWithError(e);
+                    return; // Fail-fast
+                }
                 log.error("AI 분석 실패 (시도 {}/{}): {}", attempt, MAX_AUTO_RETRIES, e.getMessage());
 
                 if (attempt >= MAX_AUTO_RETRIES) {
@@ -375,9 +402,28 @@ public class AnalysisController {
     private String collectStreamResponse(ResponseStream<GenerateContentResponse> responseStream) {
         StringBuilder fullResponse = new StringBuilder();
         for (GenerateContentResponse response : responseStream) {
+            // 프롬프트 통과 여부 검사
+            if (response.promptFeedback().isPresent()) {
+                var promptFeedback = response.promptFeedback().get();
+                if (promptFeedback.blockReason().isPresent()) {
+                    String feedback = String.valueOf(promptFeedback.blockReason().get());
+                    if (feedback.contains("SAFETY") || feedback.contains("BLOCK") || feedback.contains("PROHIBITED")) {
+                        throw new SafetyBlockedException("안전 정책 위반으로 프롬프트 자체가 차단되었습니다.");
+                    }
+                }
+            }
+
             if (!response.candidates().isPresent()) continue;
 
             for (Candidate candidate : response.candidates().get()) {
+                // 응답 통과 여부 검사
+                if (candidate.finishReason() != null) {
+                    String reason = String.valueOf(candidate.finishReason());
+                    if (reason.contains("SAFETY") || reason.contains("BLOCK")) {
+                        throw new SafetyBlockedException("안전 정책 위반으로 분석이 차단되었습니다.");
+                    }
+                }
+
                 if (!candidate.content().isPresent()) continue;
 
                 for (Part part : candidate.content().get().parts().orElse(List.of())) {
@@ -448,9 +494,16 @@ public class AnalysisController {
 
     private String determineErrorType(Exception e) {
         if (e == null) return "UNKNOWN";
-        if (e instanceof IllegalArgumentException) {
-            return e.getMessage().contains("No valid JSON") ? "INVALID_RESPONSE" : "INVALID_STRUCTURE";
-        } else if (e instanceof com.google.gson.JsonSyntaxException) {
+        
+        Throwable cause = e instanceof java.util.concurrent.CompletionException && e.getCause() != null 
+                ? e.getCause() : e;
+
+        if (cause instanceof SafetyBlockedException) {
+            return "SAFETY_BLOCKED";
+        }
+        if (cause instanceof IllegalArgumentException) {
+            return cause.getMessage() != null && cause.getMessage().contains("No valid JSON") ? "INVALID_RESPONSE" : "INVALID_STRUCTURE";
+        } else if (cause instanceof com.google.gson.JsonSyntaxException) {
             return "MALFORMED_JSON";
         }
         return "AI_ERROR";
@@ -461,6 +514,7 @@ public class AnalysisController {
             case "INVALID_RESPONSE" -> "AI가 올바른 형식으로 응답하지 않았습니다. 잠시 후 다시 시도해주세요.";
             case "INVALID_STRUCTURE" -> "분석 결과가 불완전합니다. 회사명과 직무명을 확인 후 다시 시도해주세요.";
             case "MALFORMED_JSON" -> "분석 결과 처리 중 오류가 발생했습니다. 다시 시도해주세요.";
+            case "SAFETY_BLOCKED" -> "안전 정책 위반으로 분석이 차단되었습니다. 민감한 단어가 포함되어 있는지 확인해주세요.";
             case "AI_ERROR" -> "AI 분석 중 오류가 발생했습니다. 다시 시도해주세요.";
             default -> "일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요.";
         };

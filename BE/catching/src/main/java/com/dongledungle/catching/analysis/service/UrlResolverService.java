@@ -3,8 +3,11 @@ package com.dongledungle.catching.analysis.service;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -29,11 +32,11 @@ public class UrlResolverService  {
 
         try {
             HttpURLConnection connection = (HttpURLConnection) URI.create(url).toURL().openConnection();
-            connection.setRequestMethod("HEAD");
+            connection.setRequestMethod("GET");
             connection.setInstanceFollowRedirects(false);  // 자동 리다이렉트 비활성화
             connection.setConnectTimeout(5000);
             connection.setReadTimeout(5000);
-            connection.setRequestProperty("User-Agent", "Mozilla/5.0");
+            connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
 
             int responseCode = connection.getResponseCode();
 
@@ -41,10 +44,29 @@ public class UrlResolverService  {
                     responseCode == HttpURLConnection.HTTP_MOVED_PERM ||    // 301
                     responseCode == HttpURLConnection.HTTP_SEE_OTHER) {     // 303
 
+                // 먼저 헤더에서 추출 시도
                 String location = connection.getHeaderField("Location");
                 if (location != null && !location.isEmpty()) {
                     log.debug("URL resolved: {} -> {}", url, location);
                     return location;
+                }
+
+                // 실패했을 경우 받은 HTML 본문 파싱
+                try (BufferedReader in = new BufferedReader(
+                        new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
+
+                    String line;
+                    // 대소문자 구분 없이 <a href="...">를 찾는 정규식
+                    Pattern linkPattern = Pattern.compile("(?i)<a\\s+href=\"([^\"]+)\"");
+
+                    while ((line = in.readLine()) != null) {
+                        Matcher linkMatcher = linkPattern.matcher(line);
+                        if (linkMatcher.find()) {
+                            String extractedUrl = linkMatcher.group(1);
+                            log.debug("URL resolved via HTML Body: {} -> {}", url, extractedUrl);
+                            return extractedUrl;
+                        }
+                    }
                 }
             }
 
