@@ -56,7 +56,7 @@ public class AnalysisController {
     private static final int MAX_AUTO_RETRIES = 2;
     private static final long RETRY_DELAY_MS = 1000;
 
-    @PostMapping(value = "/json", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @PostMapping(value = "/json", produces = {MediaType.TEXT_EVENT_STREAM_VALUE, MediaType.APPLICATION_JSON_VALUE})
     public SseEmitter analyzeJson(Authentication authentication, @RequestBody AnalysisRequestDto request) {
         Long userId = Long.parseLong((String) authentication.getPrincipal());
         
@@ -72,7 +72,7 @@ public class AnalysisController {
         return emitter;
     }
 
-    @PostMapping(value = "/text", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @PostMapping(value = "/text", produces = {MediaType.TEXT_EVENT_STREAM_VALUE, MediaType.APPLICATION_JSON_VALUE})
     public SseEmitter analyzeText(Authentication authentication, @Valid @RequestBody AnalysisRequestDto request) {
         Long userId = Long.parseLong((String) authentication.getPrincipal());
 
@@ -88,7 +88,7 @@ public class AnalysisController {
         return emitter;
     }
 
-    @GetMapping("/check-rate-limit")
+    @GetMapping("/check")
     public ResponseEntity<ApiResponse<Map<String, Object>>> checkRateLimit(Authentication authentication) {
         Long userId = Long.parseLong((String) authentication.getPrincipal());
         Long remainingTime = rateLimitService.getRemainingTime(userId);

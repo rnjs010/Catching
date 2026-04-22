@@ -18,7 +18,7 @@ public class UrlResolverService  {
 
     // URL 패턴: 마크다운 링크 또는 단독 URL
     private static final Pattern URL_PATTERN = Pattern.compile(
-            "(https://vertexaisearch\\.cloud\\.google\\.com/grounding-api-redirect/[^\\s)\\]]+)"
+            "(https://vertexaisearch\\.cloud\\.google\\.com/grounding-api-redirect/[a-zA-Z0-9_\\-~=]+)"
     );
 
     /**
@@ -30,8 +30,11 @@ public class UrlResolverService  {
             return url;
         }
 
+        // 마지막에 묻어올 수 있는 문자 제거
+        String cleanUrl = url.replaceAll("[\"'\\]),.]+$", "").trim();
+
         try {
-            HttpURLConnection connection = (HttpURLConnection) URI.create(url).toURL().openConnection();
+            HttpURLConnection connection = (HttpURLConnection) URI.create(cleanUrl).toURL().openConnection();
             connection.setRequestMethod("GET");
             connection.setInstanceFollowRedirects(false);  // 자동 리다이렉트 비활성화
             connection.setConnectTimeout(5000);
@@ -40,41 +43,41 @@ public class UrlResolverService  {
 
             int responseCode = connection.getResponseCode();
 
-            if (responseCode == HttpURLConnection.HTTP_MOVED_TEMP ||    // 302
-                    responseCode == HttpURLConnection.HTTP_MOVED_PERM ||    // 301
-                    responseCode == HttpURLConnection.HTTP_SEE_OTHER) {     // 303
+            if (responseCode == HttpURLConnection.HTTP_MOVED_TEMP || // 302
+                responseCode == HttpURLConnection.HTTP_MOVED_PERM || // 301
+                responseCode == HttpURLConnection.HTTP_SEE_OTHER) {  // 303
 
                 // 먼저 헤더에서 추출 시도
                 String location = connection.getHeaderField("Location");
                 if (location != null && !location.isEmpty()) {
-                    log.debug("URL resolved: {} -> {}", url, location);
+                    log.debug("URL resolved: {} -> {}", cleanUrl, location);
                     return location;
                 }
 
                 // 실패했을 경우 받은 HTML 본문 파싱
                 try (BufferedReader in = new BufferedReader(
                         new InputStreamReader(connection.getInputStream(), StandardCharsets.UTF_8))) {
-
+                    
                     String line;
-                    // 대소문자 구분 없이 <a href="...">를 찾는 정규식
-                    Pattern linkPattern = Pattern.compile("(?i)<a\\s+href=\"([^\"]+)\"");
-
+                    Pattern linkPattern = Pattern.compile("(?i)<a[^>]+href=[\"']([^\"']+)[\"']");
                     while ((line = in.readLine()) != null) {
-                        Matcher linkMatcher = linkPattern.matcher(line);
-                        if (linkMatcher.find()) {
-                            String extractedUrl = linkMatcher.group(1);
-                            log.debug("URL resolved via HTML Body: {} -> {}", url, extractedUrl);
+                        Matcher m = linkPattern.matcher(line);
+                        if (m.find()) {
+                            String extractedUrl = m.group(1);
+                            log.debug("URL resolved from body: {} -> {}", cleanUrl, extractedUrl);
                             return extractedUrl;
                         }
                     }
                 }
+            } else {
+                log.warn("URL 변환 실패 (응답 코드: {}), 원본 유지: {}", responseCode, cleanUrl);
             }
-
             connection.disconnect();
+            
         } catch (Exception e) {
-            log.warn("URL 변환 실패, 원본 유지: {} - {}", url, e.getMessage());
+            log.warn("URL 변환 실패, 원본 유지: {} - {}", cleanUrl, e.getMessage());
         }
-
+        
         return url;  // 실패 시 원본 반환
     }
 
