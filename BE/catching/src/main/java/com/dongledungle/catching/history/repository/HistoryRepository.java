@@ -41,6 +41,7 @@ public interface HistoryRepository extends JpaRepository<History, Long> {
                 JOIN analysis a ON h.companyPositionId = a.companyPositionId
             WHERE h.userId = :userId
                 AND h.createdAt >= :oneMonthAgo
+                AND h.isDeleted = false
             ORDER BY h.createdAt DESC
             """
     )

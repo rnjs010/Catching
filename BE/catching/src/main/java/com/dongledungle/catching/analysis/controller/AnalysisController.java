@@ -10,6 +10,7 @@ import com.dongledungle.catching.analysis.service.GeminiService;
 import com.dongledungle.catching.analysis.service.RateLimitService;
 import com.dongledungle.catching.analysis.service.UrlResolverService;
 import com.dongledungle.catching.auth.entity.User;
+import com.dongledungle.catching.analysis.exception.RateLimitExceededException;
 import com.dongledungle.catching.analysis.exception.SafetyBlockedException;
 import com.dongledungle.catching.common.response.ApiResponse;
 import com.dongledungle.catching.common.util.JsonParserUtil;
@@ -32,6 +33,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
@@ -54,34 +56,54 @@ public class AnalysisController {
     private static final int MAX_AUTO_RETRIES = 2;
     private static final long RETRY_DELAY_MS = 1000;
 
-    @PostMapping(value = "/json", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @PostMapping(value = "/json", produces = {MediaType.TEXT_EVENT_STREAM_VALUE, MediaType.APPLICATION_JSON_VALUE})
     public SseEmitter analyzeJson(Authentication authentication, @RequestBody AnalysisRequestDto request) {
-        SseEmitter emitter = new SseEmitter(600000L);
         Long userId = Long.parseLong((String) authentication.getPrincipal());
+        
+        // Rate limit 체크
+        if (!rateLimitService.isUserAllowed(userId)) {
+            Long remainingTime = rateLimitService.getRemainingTime(userId);
+            throw new RateLimitExceededException(remainingTime + "초 후에 다시 시도해주세요.", remainingTime);
+        }
+
+        SseEmitter emitter = new SseEmitter(600000L);
         request.setUserId(userId);
         CompletableFuture.runAsync(() -> processAnalysisWithSSE(request, emitter, true));
         return emitter;
     }
 
-    @PostMapping(value = "/text", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @PostMapping(value = "/text", produces = {MediaType.TEXT_EVENT_STREAM_VALUE, MediaType.APPLICATION_JSON_VALUE})
     public SseEmitter analyzeText(Authentication authentication, @Valid @RequestBody AnalysisRequestDto request) {
         Long userId = Long.parseLong((String) authentication.getPrincipal());
-        SseEmitter emitter = new SseEmitter(600000L);
 
         // Rate limit 체크
         if (!rateLimitService.isUserAllowed(userId)) {
             Long remainingTime = rateLimitService.getRemainingTime(userId);
-            sendSseEvent(emitter, "error",
-                    gson.toJson(new ErrorResponse("RATE_LIMIT",
-                            remainingTime + "초 후에 다시 시도해주세요.")));
-            emitter.complete();
-            return emitter;
+            throw new RateLimitExceededException(remainingTime + "초 후에 다시 시도해주세요.", remainingTime);
         }
 
-
+        SseEmitter emitter = new SseEmitter(600000L);
         request.setUserId(userId);
         CompletableFuture.runAsync(() -> processAnalysisWithSSE(request, emitter, false));
         return emitter;
+    }
+
+    @GetMapping("/check")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> checkRateLimit(Authentication authentication) {
+        Long userId = Long.parseLong((String) authentication.getPrincipal());
+        Long remainingTime = rateLimitService.getRemainingTime(userId);
+
+        if (remainingTime > 0) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(
+                    ApiResponse.error(
+                            HttpStatus.TOO_MANY_REQUESTS.value(),
+                            remainingTime + "초 후에 다시 시도해주세요.",
+                            Map.of("isAllowed", false, "remainingTime", remainingTime)
+                    )
+            );
+        }
+
+        return ResponseEntity.ok(ApiResponse.success(Map.of("isAllowed", true)));
     }
 
     @GetMapping("/{analysisId}")
@@ -166,6 +188,16 @@ public class AnalysisController {
 
         } catch (Exception e) {
             log.error("SSE 처리 중 예외 발생", e);
+            String errorType = determineErrorType(e);
+            
+            rateLimitService.unmarkAsProcessing(request.getUserId(), request.getCompany(), request.getPosition());
+            if (!"SAFETY_BLOCKED".equals(errorType)) {
+                rateLimitService.resetUserCooldown(request.getUserId());
+                log.debug("일반 에러: 사용자 {} 쿨다운 해제", request.getUserId());
+            } else {
+                log.warn("안전 정책 위반: 사용자 {} 1분 페널티 유지", request.getUserId());
+            }
+
             handleSseError(emitter, e);
         }
     }
@@ -207,7 +239,7 @@ public class AnalysisController {
             sendSseEvent(emitter, "complete", "success");
             emitter.complete();
 
-        }, emitter);
+        }, emitter, request);
     }
 
     // ============ AI 스트리밍 (Text - 병렬 처리) ============
@@ -258,6 +290,15 @@ public class AnalysisController {
         } catch (Exception e) {
             log.error("AI 분석 최종 실패", e);
             String errorType = determineErrorType(e);
+            
+            rateLimitService.unmarkAsProcessing(request.getUserId(), request.getCompany(), request.getPosition());
+            if (!"SAFETY_BLOCKED".equals(errorType)) {
+                rateLimitService.resetUserCooldown(request.getUserId());
+                log.debug("일반 에러: 사용자 {} 쿨다운 해제", request.getUserId());
+            } else {
+                log.warn("안전 정책 위반: 사용자 {} 1분 페널티 유지", request.getUserId());
+            }
+
             String errorMessage = getUserFriendlyMessage(errorType);
             sendSseEvent(emitter, "error", gson.toJson(new ErrorResponse(errorType, errorMessage)));
             emitter.completeWithError(e);
@@ -364,7 +405,7 @@ public class AnalysisController {
         throw lastException != null ? lastException : new RuntimeException("AI 분석 실패");
     }
 
-    private void retryWithLimit(Runnable task, SseEmitter emitter) {
+    private void retryWithLimit(Runnable task, SseEmitter emitter, AnalysisRequestDto request) {
         for (int attempt = 1; attempt <= MAX_AUTO_RETRIES; attempt++) {
             try {
                 if (attempt > 1) {
@@ -378,9 +419,13 @@ public class AnalysisController {
                 return;
 
             } catch (Exception e) {
+                String errorType = determineErrorType(e);
+
                 if (e instanceof SafetyBlockedException) {
                     log.warn("AI 분석 차단됨 (Safety Policy): {}", e.getMessage());
-                    String errorType = determineErrorType(e);
+                    rateLimitService.unmarkAsProcessing(request.getUserId(), request.getCompany(), request.getPosition());
+                    log.warn("안전 정책 위반: 사용자 {} 1분 페널티 유지", request.getUserId());
+                    
                     String errorMessage = getUserFriendlyMessage(errorType);
                     sendSseEvent(emitter, "error", gson.toJson(new ErrorResponse(errorType, errorMessage)));
                     emitter.completeWithError(e);
@@ -389,7 +434,14 @@ public class AnalysisController {
                 log.error("AI 분석 실패 (시도 {}/{}): {}", attempt, MAX_AUTO_RETRIES, e.getMessage());
 
                 if (attempt >= MAX_AUTO_RETRIES) {
-                    String errorType = determineErrorType(e);
+                    rateLimitService.unmarkAsProcessing(request.getUserId(), request.getCompany(), request.getPosition());
+                    if (!"SAFETY_BLOCKED".equals(errorType)) {
+                        rateLimitService.resetUserCooldown(request.getUserId());
+                        log.debug("일반 에러: 사용자 {} 쿨다운 해제", request.getUserId());
+                    } else {
+                        log.warn("안전 정책 위반: 사용자 {} 1분 페널티 유지", request.getUserId());
+                    }
+
                     String errorMessage = getUserFriendlyMessage(errorType);
                     sendSseEvent(emitter, "error", gson.toJson(new ErrorResponse(errorType, errorMessage)));
                     emitter.completeWithError(e);
@@ -431,7 +483,15 @@ public class AnalysisController {
                 }
             }
         }
-        return fullResponse.toString();
+
+        String result = fullResponse.toString();
+        
+        // 커스텀 가드레일 문구(악의적 프롬프트) 감지 시 Safety 정책 위반으로 간주하여 강제 차단
+        if (result.contains("분석 목적에 맞지 않는 내용이 포함되어 있어 분석을 수행할 수 없습니다")) {
+            throw new SafetyBlockedException("커스텀 가드레일에 의해 악의적 프롬프트로 차단되었습니다.");
+        }
+        
+        return result;
     }
 
     /**

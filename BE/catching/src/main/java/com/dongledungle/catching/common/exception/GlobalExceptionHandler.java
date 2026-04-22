@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.dongledungle.catching.analysis.exception.RateLimitExceededException;
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
     /**
@@ -33,6 +35,19 @@ public class GlobalExceptionHandler {
                         HttpStatus.BAD_REQUEST.value(),
                         "입력값이 올바르지 않습니다.",
                         errors
+                ));
+    }
+
+    /**
+     * Rate Limit 제한에 걸렸을 때 발생하는 예외 (429 Too Many Requests)
+     */
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> handleRateLimitExceeded(RateLimitExceededException ex) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(ApiResponse.error(
+                        HttpStatus.TOO_MANY_REQUESTS.value(),
+                        ex.getMessage(),
+                        Map.of("remainingTime", ex.getRemainingTime())
                 ));
     }
 }
