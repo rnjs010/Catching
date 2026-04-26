@@ -90,7 +90,7 @@ public class PdfExportService {
         Matcher m2 = doubleBracketRefPattern.matcher(processed);
         StringBuffer sb1 = new StringBuffer();
         while (m2.find()) {
-            String title = m2.group(1);
+            String title = escapeHtmlTags(m2.group(1));
             String url = m2.group(2);
             String replacement = "<div class=\"link-line\">\n<a href='" + Matcher.quoteReplacement(url) + "'>" + Matcher.quoteReplacement(title) + "</a>\n" + "</div>";
             m2.appendReplacement(sb1, replacement);
@@ -109,7 +109,7 @@ public class PdfExportService {
         Matcher m3 = bracketInTitleRefPattern.matcher(processed);
         StringBuffer sb2 = new StringBuffer();
         while (m3.find()) {
-            String title = m3.group(1);
+            String title = escapeHtmlTags(m3.group(1));
             String url = m3.group(2);
             String replacement = "<div class=\"link-line\">\n<a href='" + Matcher.quoteReplacement(url) + "'>" + Matcher.quoteReplacement(title) + "</a>\n" + "</div>";
             m3.appendReplacement(sb2, replacement);
@@ -131,7 +131,7 @@ public class PdfExportService {
             String tag = m4.group(1);       // [현대자동차]
             String title = m4.group(2).trim();  // CS강사 계약직 채용
             String url = m4.group(3);
-            String fullTitle = tag + " " + title;
+            String fullTitle = escapeHtmlTags(tag + " " + title);
             String replacement = "<div class=\"link-line\">\n<a href='" + Matcher.quoteReplacement(url) + "'>" + Matcher.quoteReplacement(fullTitle) + "</a>\n" + "</div>";
             m4.appendReplacement(sb3, replacement);
         }
@@ -147,7 +147,7 @@ public class PdfExportService {
         Matcher m6 = simpleRefPattern.matcher(processed);
         StringBuffer sb4 = new StringBuffer();
         while (m6.find()) {
-            String title = m6.group(1);
+            String title = escapeHtmlTags(m6.group(1));
             String url = m6.group(2);
             String replacement = "<div class=\"link-line\">\n<a href='" + Matcher.quoteReplacement(url) + "'>" + Matcher.quoteReplacement(title) + "</a>\n" + "</div>";
             m6.appendReplacement(sb4, replacement);
@@ -164,7 +164,7 @@ public class PdfExportService {
         Matcher m5 = simpleLinkPattern.matcher(processed);
         StringBuffer sb5 = new StringBuffer();
         while (m5.find()) {
-            String title = m5.group(1);
+            String title = escapeHtmlTags(m5.group(1));
             String url = m5.group(2);
             String replacement = "<div class=\"link-line\">\n<a href='" + Matcher.quoteReplacement(url) + "'>" + Matcher.quoteReplacement(title) + "</a>\n" + "</div>";
             m5.appendReplacement(sb5, replacement);
@@ -181,6 +181,14 @@ public class PdfExportService {
 
         // XHTML 정제 (Flying Saucer 호환)
         return cleanForXhtml(html);
+    }
+
+    /**
+     * HTML 태그로 오인될 수 있는 문자(<, >)를 안전하게 이스케이프
+     */
+    private String escapeHtmlTags(String text) {
+        if (text == null) return "";
+        return text.replace("<", "&lt;").replace(">", "&gt;");
     }
 
     /**
