@@ -20,7 +20,7 @@ public class EncryptionUtil {
 
     private static String secretKey;
 
-    @Value("${encryption.secret:default-encryption-key-32bytes!!}")
+    @Value("${encryption.secret}")
     public void setSecretKey(String key) {
         secretKey = key;
     }
