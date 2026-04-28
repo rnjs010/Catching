@@ -1,4 +1,17 @@
-import { createWorker } from "tesseract.js";
+import api from "@/services/apiService";
+
+// Base64 Data URL을 File 객체로 변환하는 유틸리티
+const dataURLtoFile = (dataurl: string, filename: string) => {
+  const arr = dataurl.split(",");
+  const mime = arr[0].match(/:(.*?);/)?.[1] || "image/png";
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new File([u8arr], filename, { type: mime });
+};
 
 type CropResultMessage = {
   croppedImage: string | null;
@@ -31,31 +44,33 @@ export const detectJobOCR = () => {
         {
           type: "START_CROP",
           screenshot,
-        }
+        },
       );
 
       if (!result?.croppedImage) {
         throw new Error("Crop cancelled");
       }
 
-      // 4. Tesseract OCR 실행
+      // 4. API 서버로 OCR 요청
       onOCRStart?.();
 
-      const worker = await createWorker("kor+eng", 1, {
-        corePath: browserAPI.runtime.getURL(
-          "/tesseract/tesseract-core.wasm.js"
-        ),
-        workerPath: browserAPI.runtime.getURL("/tesseract/worker.min.js"),
-        langPath: browserAPI.runtime.getURL("/tesseract"),
-        workerBlobURL: false,
-        gzip: false,
-      });
+      const imageFile = dataURLtoFile(result.croppedImage, "ocr-image.png");
+      const formData = new FormData();
+      formData.append("file", imageFile);
 
-      const ocrResult = await worker.recognize(result.croppedImage);
-      await worker.terminate();
+      const response = await api.post<{ text: string }>(
+        "/ocr/extract",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        },
+      );
 
-      // 5. 결과 정리
-      return ocrResult.data.text
+      const extractedText = response.data.text || "";
+
+      return extractedText
         .trim()
         .replace(/\s+/g, " ")
         .replace(/\n+/g, " ")
