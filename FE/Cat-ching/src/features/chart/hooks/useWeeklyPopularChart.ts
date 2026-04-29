@@ -2,13 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { getWeeklyPopularChart } from "../services/chartService";
 import {
   formatYearMonthWeekRange,
-  getTotalSurveyCount,
   mapWeeklyChartToPieData,
 } from "../services/chartMapper";
-import { WeeklyPopularChartApiItem } from "@/types/chart";
+import { WeeklyPopularChartData } from "@/types/chart";
 
 export const useWeeklyPopularChart = () => {
-  const [rawData, setRawData] = useState<WeeklyPopularChartApiItem[]>([]);
+  const [chartData, setChartData] = useState<WeeklyPopularChartData | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
 
@@ -23,7 +24,7 @@ export const useWeeklyPopularChart = () => {
         const data = await getWeeklyPopularChart();
 
         if (!isMounted) return;
-        setRawData(data);
+        setChartData(data);
       } catch (error) {
         console.error("차트 조회 실패:", error);
         if (!isMounted) return;
@@ -41,14 +42,19 @@ export const useWeeklyPopularChart = () => {
     };
   }, []);
 
-  const pieData = useMemo(() => mapWeeklyChartToPieData(rawData), [rawData]);
+  const pieData = useMemo(() => {
+    if (!chartData || !chartData.top5) return [];
+    return mapWeeklyChartToPieData(chartData.top5);
+  }, [chartData]);
 
-  const totalCount = useMemo(() => getTotalSurveyCount(rawData), [rawData]);
+  const totalCount = useMemo(() => {
+    return chartData?.totalCount || 0;
+  }, [chartData]);
 
   const dateRangeText = useMemo(() => {
-    if (rawData.length === 0) return "";
-    return formatYearMonthWeekRange(rawData[0].yearMonthWeek);
-  }, [rawData]);
+    if (!chartData || !chartData.top5 || chartData.top5.length === 0) return "";
+    return formatYearMonthWeekRange(chartData.top5[0].yearMonthWeek);
+  }, [chartData]);
 
   return {
     pieData,

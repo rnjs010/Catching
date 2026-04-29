@@ -60,8 +60,3 @@ export const mapWeeklyChartToPieData = (
     color: CHART_COLORS[index % CHART_COLORS.length],
   }));
 };
-
-// top5의 총 조사 수 계산
-export const getTotalSurveyCount = (items: WeeklyPopularChartApiItem[]) => {
-  return items.reduce((sum, item) => sum + item.viewCount, 0);
-};

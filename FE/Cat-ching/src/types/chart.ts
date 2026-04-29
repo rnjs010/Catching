@@ -6,11 +6,16 @@ export type WeeklyPopularChartApiItem = {
   yearMonthWeek: string; // ex) "2026-04-W3"
 };
 
+export type WeeklyPopularChartData = {
+  totalCount: number;
+  top5: WeeklyPopularChartApiItem[];
+};
+
 export type WeeklyPopularChartApiResponse = {
   status: number;
   success: boolean;
   message: string;
-  data: WeeklyPopularChartApiItem[];
+  data: WeeklyPopularChartData;
 };
 
 export type PieItem = {
