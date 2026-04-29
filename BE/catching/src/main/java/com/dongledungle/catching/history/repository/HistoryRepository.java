@@ -35,6 +35,9 @@ public interface HistoryRepository extends JpaRepository<History, Long> {
     // 특정 직무정보 ID의 조회수 조회
     long countByCompanyPositionIdAndYearMonthWeek(Long companyPositionId, String yearMonthWeek);
 
+    // 특정 주차의 전체 히스토리 개수 (Top5 산정 모집단)
+    long countByYearMonthWeek(String yearMonthWeek);
+
     @Query("""
             SELECT h, a.company, a.position
             FROM history h

@@ -6,6 +6,7 @@ import com.dongledungle.catching.analysis.service.AnalysisService;
 import com.dongledungle.catching.common.util.WeekUtil;
 import com.dongledungle.catching.history.repository.HistoryRepository;
 import com.dongledungle.catching.popular.dto.PopularAnalysisDto;
+import com.dongledungle.catching.popular.dto.PopularAnalysisResponse;
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import lombok.RequiredArgsConstructor;
@@ -28,10 +29,11 @@ public class PopularAnalysisService {
     /**
      * 특정 주차의 인기 분석 Top 5 조회 (실시간 조회수 포함)
      */
-    public List<PopularAnalysisDto> getWeeklyPopular(String yearMonthWeek) {
+    public PopularAnalysisResponse getWeeklyPopular(String yearMonthWeek) {
         List<Object[]> top5 = historyRepository.findTop5ByYearWeek(yearMonthWeek);
+        long totalCount = historyRepository.countByYearMonthWeek(yearMonthWeek);
 
-        return top5.stream()
+        List<PopularAnalysisDto> top5Dto = top5.stream()
                 .map(arr -> {
                     Long companyPositionId = (Long) arr[0];
                     Long viewCount = (Long) arr[1];
@@ -51,28 +53,37 @@ public class PopularAnalysisService {
                 })
                 .filter(Objects::nonNull)
                 .toList();
+
+        return PopularAnalysisResponse.builder()
+                .totalCount(totalCount)
+                .top5(top5Dto)
+                .build();
     }
 
     /**
      * 현재 주차 인기 분석 조회
      */
-    public List<PopularAnalysisDto> getCurrentWeekPopular() {
+    public PopularAnalysisResponse getCurrentWeekPopular() {
         String currentWeek = WeekUtil.getCurrentYearMonthWeek();
 
         // 이번주 데이터 먼저 시도
         List<Object[]> top5 = historyRepository.findTop5ByYearWeek(currentWeek);
         String appliedWeekLabel = currentWeek;
+        long totalCount;
 
         // 만약 이번주 데이터 없다면 전체기간으로 fallback
         if (top5 == null || top5.isEmpty()) {
             log.info("이번 주({}) 인기 분석 데이터가 없어 전체 기간 Top 5로 대체합니다.", currentWeek);
             top5 = historyRepository.findTop5AllTime();
             appliedWeekLabel = "all-time";
+            totalCount = historyRepository.count();
+        } else {
+            totalCount = historyRepository.countByYearMonthWeek(currentWeek);
         }
 
         final String finalWeekLabel = appliedWeekLabel;
 
-        return top5.stream()
+        List<PopularAnalysisDto> top5Dto = top5.stream()
                 .map(arr -> {
                     Long id = (Long) arr[0];
                     Long viewCount = (Long) arr[1];
@@ -90,5 +101,10 @@ public class PopularAnalysisService {
                 })
                 .filter(Objects::nonNull)
                 .toList();
+
+        return PopularAnalysisResponse.builder()
+                .totalCount(totalCount)
+                .top5(top5Dto)
+                .build();
     }
 }
