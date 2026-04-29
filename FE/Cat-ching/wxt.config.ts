@@ -36,12 +36,8 @@ export default defineConfig({
     },
     name: "Cat-ching",
     description: "AI 기업 분석 & 직무 산업 동향 리서치",
-    version: "0.0.1",
+    version: "0.1.0",
     host_permissions: ["<all_urls>"],
-    content_security_policy: {
-      extension_pages:
-        "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'",
-    },
     oauth2: {
       client_id: process.env.VITE_GOOGLE_CLIENT_ID!,
       scopes: ["openid", "email", "profile"],

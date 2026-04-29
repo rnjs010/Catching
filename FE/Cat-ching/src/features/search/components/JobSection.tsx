@@ -3,6 +3,7 @@ import tw from "twin.macro";
 import { Text } from "@/styles/typography";
 import { LuMousePointerClick } from "react-icons/lu";
 import { TbCapture } from "react-icons/tb";
+import { RotateCcw } from "lucide-react";
 import { EditableText } from "./EditableText";
 import GradientText from "@/components/GradientText";
 import { JobInputMode, useJobViewState } from "../hooks/useJobViewState";
@@ -24,7 +25,11 @@ const CaptureButton = styled.button`
 `;
 
 const GrayButton = styled.button`
-  ${tw`px-3 py-1.5 mt-4 rounded-full bg-gray-100 underline`}
+  ${tw`px-3 py-1.5 mt-4 rounded-full bg-gray-100 flex items-center justify-center underline`}
+`;
+
+const IconButton = styled(GrayButton)`
+  ${tw`no-underline`}
 `;
 
 const TEXT = {
@@ -118,15 +123,20 @@ export default function JobSection({ visible }: { visible: boolean }) {
       )}
 
       {viewState === "result" && (
-        <EditableText
-          text={job}
-          placeholder="직무 이름"
-          isEditable={isJobEditing}
-          skipAnimation={!isAutoDetected}
-          onEdit={() => setIsJobEditing(true)}
-          onClose={() => setIsJobEditing(false)}
-          onSave={handleJobSave}
-        />
+        <>
+          <EditableText
+            text={job}
+            placeholder="직무 이름"
+            isEditable={isJobEditing}
+            skipAnimation={!isAutoDetected}
+            onEdit={() => setIsJobEditing(true)}
+            onClose={() => setIsJobEditing(false)}
+            onSave={handleJobSave}
+          />
+          <IconButton onClick={handleCancel} aria-label="초기화">
+            <RotateCcw size={14} className="text-gray-600" />
+          </IconButton>
+        </>
       )}
     </Container>
   );
