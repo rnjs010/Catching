@@ -67,7 +67,7 @@ class PopularAnalysisServiceTest {
         when(analysisRepository.findById(200L)).thenReturn(Optional.of(analysis2));
 
         // When
-        List<PopularAnalysisDto> popular = popularService.getCurrentWeekPopular();
+        List<PopularAnalysisDto> popular = popularService.getCurrentWeekPopular().getTop5();
 
         // Then
         assertThat(popular).hasSize(2);
@@ -105,7 +105,7 @@ class PopularAnalysisServiceTest {
         when(analysisRepository.findById(999L)).thenReturn(Optional.empty());  // 없음
 
         // When
-        List<PopularAnalysisDto> popular = popularService.getCurrentWeekPopular();
+        List<PopularAnalysisDto> popular = popularService.getCurrentWeekPopular().getTop5();
 
         // Then - null은 필터링됨
         assertThat(popular).hasSize(1);

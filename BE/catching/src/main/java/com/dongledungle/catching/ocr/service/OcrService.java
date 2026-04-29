@@ -117,6 +117,8 @@ public class OcrService {
             tesseract.setDatapath(tessDataPath);
 
             String result = tesseract.doOCR(image);
+            // 개행/탭 등 모든 공백류 문자를 단일 공백으로 치환 후 앞뒤 공백 제거
+            result = result.replaceAll("\\s+", " ").trim();
             log.info("Tesseract OCR completed via Fallback.");
             return result;
         } catch (IOException | TesseractException e) {
